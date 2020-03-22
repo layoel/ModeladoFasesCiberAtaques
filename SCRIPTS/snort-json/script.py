@@ -39,56 +39,60 @@ def ls1(path):
 
 #---------------------PROGRAMA---------------------------------#
 
-# - Lee del directorio de SNORT los logs creados en JSON	
-path = []
-fich = []
-path = sys.argv[1] 									#ARGV[1] es la ruta donde tengo los logs
+# - Lee del directorio de SNORT los logs creados en JSON
+if len(sys.argv) ==3:
 
-ficheros = []
-ficheros = ls1(path) 									#array con el nombre de los ficheros
+	path = []
+	fich = []
+	path = sys.argv[1] 										#ARGV[1] es la ruta donde tengo los logs
+	destinoCp = sys.argv[1] 								#ARGV[2] es la ruta donde guardo los logs procesados
 
-print (ls1(path))
-	
-# - Inserta los json en la bd MongoDB
+	ficheros = []
+	ficheros = ls1(path) 									#array con el nombre de los ficheros
 
-#print "\nSe conectara al Servidor de Base de Datos Local."
-conexion = MongoClient('localhost', 27018) 						#La conexion sera local
-db = conexion['tranalyzer'] 								#Conexion a la db
-coleccion = db['flow']									#Variable de referencia a la coleccion
-
-listaficheros = []
-listaficheros = ls1(path) 								#los ficheros en ese directorio
-
-porLeer = ["null"] 									#archivos que me quedan por leer del log
-leidos = [] 										#archivos que ya he leido
-
-while (len(porLeer) >= 0):
-	
-	porLeer = listaficheros
-	print(porLeer)
-
-	if len(porLeer) is 0:
-		porLeer = ["null"]
-	else:
-		archivo = path + porLeer[0] 						#sin nombre de fichero solo el path
-
-		print "\nLos datos de conexion son:"
-		print "Base de datos: " + str(db)
-		print "Coleccion: " + str(coleccion)
-		print "Ruta del archivo .json: " + str(archivo)				#ruta completa del archivo .json
-
-		f = open(str(archivo), 'r')
-
-		for lin in f:
-			diccionario = json.loads(lin) 					#crea los diccionarios a partir del string lin
-			print (diccionario)
-			db.flow.insert(diccionario) 					#inserto en la db los registros
-			
-		f.close()
-
-		shutil.move( str(archivo) , "/home/eca/Escritorio/prueba") 		#muevo el leido a la carpeta prueba
-		leidos.append(porLeer.pop(0))
-		#print("ME QUEDA POR LEER ESTO:")
-		#print(porLeer)
+	print (ls1(path))
 		
+	# - Inserta los json en la bd MongoDB
 
+	#print "\nSe conectara al Servidor de Base de Datos Local."
+	conexion = MongoClient('localhost', 27018) 						#La conexion sera local
+	db = conexion['tranalyzer'] 								#Conexion a la db
+	coleccion = db['flow']									#Variable de referencia a la coleccion
+
+	listaficheros = []
+	listaficheros = ls1(path) 								#los ficheros en ese directorio
+
+	porLeer = ["null"] 									#archivos que me quedan por leer del log
+	leidos = [] 										#archivos que ya he leido
+
+	while (len(porLeer) >= 0):
+		
+		porLeer = listaficheros
+		print(porLeer)
+
+		if len(porLeer) is 0:
+			porLeer = ["null"]
+		else:
+			archivo = path + porLeer[0] 						#sin nombre de fichero solo el path
+
+			print "\nLos datos de conexion son:"
+			print "Base de datos: " + str(db)
+			print "Coleccion: " + str(coleccion)
+			print "Ruta del archivo .json: " + str(archivo)				#ruta completa del archivo .json
+
+			f = open(str(archivo), 'r')
+
+			for lin in f:
+				diccionario = json.loads(lin) 					#crea los diccionarios a partir del string lin
+				print (diccionario)
+				db.flow.insert(diccionario) 					#inserto en la db los registros
+				
+			f.close()
+
+			shutil.move( str(archivo) , str(destinoCp)) 		#muevo el leido a la carpeta prueba
+			leidos.append(porLeer.pop(0))
+			#print("ME QUEDA POR LEER ESTO:")
+			#print(porLeer)
+			
+else:
+		print "Uso: [script.py] [path logs snort] [destino path logs procesados]" 
