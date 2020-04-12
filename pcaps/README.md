@@ -15,7 +15,7 @@ Son todos capturas de tráfico de red de Sistemas de Control Industrial (ICS) al
 - [https://wiki.wireshark.org/S7comm](https://wiki.wireshark.org/S7comm)
 - [https://github.com/gvalentine/ICS_PCAPS](https://github.com/gvalentine/ICS_PCAPS)
 - [https://github.com/Anihilakos/Feature-Selection-SCADA-network](https://github.com/Anihilakos/Feature-Selection-SCADA-network)
-- [https://www.netresec.com/index.ashx?page=PCAP4SICS](https://www.netresec.com/index.ashx?page=PCAP4SICS)
+- [https://www.netresec.com/index.ashx?page=PCAP4SICS](https://www.netresec.com/index.ashx?page=PCAP4SICS) probar estos
 - [https://sourceforge.net/projects/s7commwireshark/files/Sample-captures/](https://sourceforge.net/projects/s7commwireshark/files/Sample-captures/) los lee snort 
 - [https://es.osdn.net/projects/sfnet_s7commwireshark/downloads/Sample-captures/3-S7comm-VAT_MB100_MW200_MD300_M400-0.pcap/](https://es.osdn.net/projects/sfnet_s7commwireshark/downloads/Sample-captures/3-S7comm-VAT_MB100_MW200_MD300_M400-0.pcap/) los lee snort
 - [https://github.com/gymgit/s7-pcaps](https://github.com/gymgit/s7-pcaps) enlazado desde aqui http://gmiru.com/article/s7comm-part2/ s7-pcap-master
@@ -29,5 +29,12 @@ Son todos capturas de tráfico de red de Sistemas de Control Industrial (ICS) al
 
 - [https://www.netresec.com/?page=DigitalBond_S4](https://www.netresec.com/?page=DigitalBond_S4) Los archivos PCAP de las redes de sistemas de control industrial son un recurso escaso, por lo que me gustaría agradecer a Digital Bond y a la conferencia S4 por permitir que estos archivos PCAP se compartan públicamente.
 
+- [https://github.com/antoine-lemay/Modbus_dataset](https://github.com/antoine-lemay/Modbus_dataset) enlace del dataset y enlace de la conferencia donde explica el contenido del dataset [https://www.usenix.org/sites/default/files/conference/protected-files/cset16_slides_lemay.pdf](https://www.usenix.org/sites/default/files/conference/protected-files/cset16_slides_lemay.pdf)
+
+- [https://github.com/MDudek-ICS/TRISIS-TRITON-HATMAN](https://github.com/MDudek-ICS/TRISIS-TRITON-HATMAN) malware triton trisis hatman
+
 #reglas Snort para scada
 - [https://github.com/digitalbond/Quickdraw-Snort](https://github.com/digitalbond/Quickdraw-Snort)
+
+#información interesante sobre seguridad en ICS
+- [https://gbhackers.com/industrial-control-system-ics-security/](https://gbhackers.com/industrial-control-system-ics-security/)
