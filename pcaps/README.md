@@ -26,3 +26,5 @@ Son todos capturas de tráfico de red de Sistemas de Control Industrial (ICS) al
 - [https://www.netresec.com/?page=PCAP4SICS](https://www.netresec.com/?page=PCAP4SICS) pcap 4sic
 
 - [https://itrust.sutd.edu.sg/itrust-labs_datasets/](https://itrust.sutd.edu.sg/itrust-labs_datasets/) solicitar por formulario. es un csv
+
+- [https://www.netresec.com/?page=DigitalBond_S4](https://www.netresec.com/?page=DigitalBond_S4) Los archivos PCAP de las redes de sistemas de control industrial son un recurso escaso, por lo que me gustaría agradecer a Digital Bond y a la conferencia S4 por permitir que estos archivos PCAP se compartan públicamente.
