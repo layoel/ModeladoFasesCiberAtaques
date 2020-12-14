@@ -166,14 +166,23 @@ def menu():
 	
 	def exitp():
 		return 0
-		
+	
+	#*****************************************
+	#    add yours functions to do queryes to mongo here....
+	#*****************************************	
+	#
+	#def myfunction(): 
+	#	......
+	
+	
 #menu mapping
 	dict = {
 		0 : exitp,
 		1 : groupby1,
 		#2: groupby2,
 		#3: groupby3
-		9 : default
+		#add yours queryes to mongo here....
+		999 : default
 	}
 	event = dict.get(selectMenu, default)()
 
@@ -198,6 +207,7 @@ if __name__ == '__main__':
 		print("2 Group by\n") 
 		print("3 Group by\n") 
 		print("4 Group by\n") 
+		#add yours queryes to mongo here....
 		print("0 exit program\n")
 		event = menu()
 
