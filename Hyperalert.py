@@ -21,13 +21,82 @@ def conectToDB(db, colection):
 	coleccion = db[colection]																											#the name of the collection where is the register of file 
 	return coleccion																															# from snort insert in mongo and where is reading the file
 
+def conectToDBNodes():
+	conexion = conectToDB("tranalyzer","nodes")
+	return conexion
+	
+def conectToDBHypera():
+	conexion = conectToDB("tranalyzer","HiperAlert")
+	return conexion
+	
+def conectToDBAlerts():
+	conexion = conectToDB("tranalyzer","alertas")
+	return conexion	
+
+def conectToDBFlow():
+	conexion = conectToDB("tranalyzer","flow")
+	return conexion	
+
+def conectToDBTime():
+	conexion = conectToDB("tranalyzer","timeAnalized")
+	return conexion	
+
+#**********************************************************************************
+#  search ip in list return the position of the ip in the list or -1 if  not exist.
+#**********************************************************************************
+def binarySearch(listIP, ip):
+	low = 0
+	high = len(listIP)-1
+	mid = 0
+	
+	while low <= high:
+		mid = (high + low)
+		if listIP[mid] < ip:
+			low = mid + 1
+		elif listIP[mid] > ip:
+			high = mid - 1
+		else:
+			return mid
+			
+	return -1
+
+
+#***********************************************************
+#  search in alerts return list of IPs.
+#***********************************************************
+def getIPListAlerts():
+	listIP = []
+	alerts= conectToDBAlerts()
+	ip = {}
+	ipsSrcSearch = [{"$unwind":"$event.source-ip"},{"$group":{"_id":{"srcIP":"$event.source-ip"}, "count":{"$sum":1}}}]
+	ipsDstSearch = [{"$unwind":"$event.destination-ip"},{"$group":{"_id":{"dstIP":"$event.destination-ip"}, "count":{"$sum":1}}}]
+	
+	ipsrc = alerts.aggregate(ipsSrcSearch)
+	ipdst = alerts.aggregate(ipsDstSearch)
+	
+	for i in ipsrc:
+		ip = i["_id"]
+		search = binarySearch(listIP, ip["srcIP"])
+		if search == -1:
+			listIP.append(str(ip["srcIP"]))
+			listIP.sort() 
+
+	for i in ipdst:
+		ip = i["_id"]
+		search = binarySearch(list(listIP), ip["dstIP"])
+		if search == -1:
+			listIP.append(str(ip["dstIP"]))
+			listIP.sort() 
+
+	return listIP                                                      # "srcIP":192.168.1.1
+	
 #***********************************************************
 #  get the last event time processed
 #***********************************************************	
 def GetlastTimeAnalized():
 	time = 0
 	exist = 0
-	colTime = conectToDB('tranalyzer','timeAnalized')
+	colTime = conectToDBTime()
 	listCollection = []
 	listCollection = getAllCollections("tranalyzer")
 	lasTime=[]
@@ -46,7 +115,7 @@ def GetlastTimeAnalized():
 #  update into lastTimeAnalized the last event time analized
 #***********************************************************	
 def UpdateLTAnalized(sg):
-	conexion = conectToDB('tranalyzer', 'timeAnalized')
+	conexion = conectToDBTime()
 	time = GetlastTimeAnalized()
 	lasTime = conexion.find()
 	
@@ -107,7 +176,7 @@ def isoToUnixtime(time):
 #*******************************************************************
 
 def parsertime():
-	flow = conectToDB('tranalyzer','flow')
+	flow = conectToDBFlow()
 	fl = flow.find()
 	for f in fl:
 		timeFirst = isoToUnixtime(f['timeFirst'])
@@ -123,15 +192,16 @@ def parsertime():
 #   it make a list of the time in seconds for alerts
 #*******************************************************
 def getListOfSecondsA():
-	alerts = conectToDB('tranalyzer','alertas')
+	alerts = conectToDBAlerts()
 	eventos = []
 	seconds = []
 	
-	alertasS = [{"$unwind":"$event.event-second"},{"$group":{"_id":{"seconds":"$event.event-second", "microseconds": "$event-microsecond", "srcIP":"$event.source-ip", "destIP":"$event.destination-ip", "srcPort":"$event.sport-itype", "destPort":"$event.dport-icode", "_id":"$_id", "Classification":"$event.classification", "event-id":"$event.event-id"}, "count":{"$sum":1}}}, {"$sort":SON([("event.event-second",-1)])}]
+	alertasS = [{"$unwind":"$event.event-second"},{"$group":{"_id":{"event-second":"$event.event-second",  "srcIP":"$event.source-ip", "destIP":"$event.destination-ip", "srcPort":"$event.sport-itype", "destPort":"$event.dport-icode"}, "count":{"$sum":1}}}, {"$sort":SON([("event.event-second",-1)])}]
 	agrupEvent = alerts.aggregate(alertasS) 
 	
 	for i in agrupEvent: 
 		seconds.append(i['_id'])
+		#pprint.pprint(i['_id'])
 
 		
 	return seconds
@@ -141,7 +211,7 @@ def getListOfSecondsA():
 #  it make a list of the {init, end} time in seconds for flows
 #***********************************************************************************
 def getListOfSecondsF():
-	flows = conectToDB('tranalyzer','flow')
+	flows = conectToDBFlow()
 	flowTime = []
 	seconds =[]
 	 
@@ -152,6 +222,7 @@ def getListOfSecondsF():
 
 	for i in agrupflowtime: 
 		seconds.append(i['_id'])
+		#pprint.pprint(seconds)
 		
 	return seconds
 #end getListOfSecondsF
@@ -256,9 +327,9 @@ def menu():
 	
 	def groupby1():
 		
-		alerts = conectToDB('tranalyzer','alertas')
-		flow = conectToDB('tranalyzer','flow')	
-		hiperA = conectToDB('tranalyzer','HiperAlert')																#hiperAlert collection in mongodb 
+		alerts = conectToDBAlerts()
+		flow = conectToDBFlow()	
+		hiperA = conectToDBHypera()																#hiperAlert collection in mongodb 
 		hiperA.drop()																																	#delete all hiperAlerts
 		tupla = []
 		count =[]
@@ -276,10 +347,10 @@ def menu():
 			srcPort = int(tupla['srcPort'])
 			destPort = int(tupla['destPort'])
 			#find in agrupIP the same tuplas to add in a list of events and the packet-id (is the same id than event.event-id)
-			findal = alerts.find({"event.source-ip":srcIP, "event.destination-ip":destIP,  "event.sport-itype":srcPort, "event.dport-icode":destPort},{"_id":1,"event.event-id":1, "event.classification" :1}) #alerts	
+			findal = alerts.find({"event.source-ip":srcIP, "event.destination-ip":destIP,  "event.sport-itype":srcPort, "event.dport-icode":destPort},{"_id":1,"event.event-id":1, "event.classification" :1, "event.priority":1, "event.event-second":1, "event.event-microsecond":1}) #alerts	
 			
 			for b in findal:
-				cadena = {"alerta":b}
+				cadena = {"alert":{"_id":b["_id"],"event":b["event"]}}
 				idAlertas.append(cadena)
 				#pprint.pprint(b)
 			#--------------------------------------#
@@ -293,8 +364,8 @@ def menu():
 			
 			#insert into hiperalertas tupla, count, b["_id"], flows and the protocol type
 			myJson= {"tupla": a["_id"],
-					"nAlertas": a["count"],
-					"idAlertas": idAlertas,
+					"nAlerts": a["count"],
+					"alerts": idAlertas,
 					"flow" : flowid,
 					"classificationProt":prot}
 			#pprint.pprint(myJson)
@@ -321,28 +392,46 @@ def menu():
 	
 	def groupby2():
 		
-		hiperA = conectToDB('tranalyzer','HiperAlert')																#hiperAlert collection in mongodb
+		hiperA = conectToDBHypera()																#hiperAlert collection in mongodb
+		al = conectToDBAlerts()
 		hiperA.drop()
 		timeAlerts = []
 		timeFlow = []
+		dataAlerts = []
 		alerts = []
-		hiperAlert= []
 		
-		timeAlerts = getListOfSecondsA()
-		timeFlow = getListOfSecondsF()																						
+		timeAlerts = getListOfSecondsA() #obtengo las alertas ordenadas por seconds
+		timeFlow = getListOfSecondsF()	#obtengo init y fin de flujos con tupla
+												
 		
-		for f in timeFlow:
-			for a in timeAlerts:
-				if isBetween(f['secondsInit'], f['secondsFin'], a['seconds']): 				#alert in a flow
+		for f in timeFlow: #recorro los flujos
+			for a in timeAlerts: #recorro el json
+				#pprint.pprint(a)
+				if isBetween(f['secondsInit'], f['secondsFin'], a['event-second']): 				#alert in a flow
 					if "srcIP" in f:
 						if (str(f['srcIP']) == str(a['srcIP'])):
 							if (str(f['srcPort']) == str(a['srcPort'])):
 								if (str(f['dstIP']) == str(a['destIP'])):
 									if (str(f['dstPort']) == str(a['destPort'])): 
-										alerts.append(a)
-
+										destIP = a["destIP"]
+										eventsecond = a["event-second"]
+										srcIP = a["srcIP"]
+										srcPort = a["srcPort"]
+										destPort = a["destPort"]
+										dataAlerts = al.find({"event.destination-ip":destIP, "event.event-second":eventsecond,"event.source-ip":srcIP,"event.sport-itype":srcPort, "event.dport-icode":destPort},{"_id":1,"event.event-id":1, "event.classification" :1, "event.priority":1, "event.event-second":1, "event.event-microsecond":1, "event.destination-ip":1, "event.event-second":1,"event.source-ip":1,"event.sport-itype":1, "event.dport-icode":1})	#buso el resto de datos de esas alertas
+										event = dataAlerts["event"]
+										classification = event["classification"]
+										ide = dataAlert["_id"]
+										eventid = event["event-id"]
+										priority = event["priority"]
+										second = event["event-second"]
+										microsecond = event["event-microsecond"]
+										aJson={"alert":{"_id":ide, "event":{"classification": classification,"event-id":eventid,"event-microsecond":microsecond,"event-second":second, "priority":priority}}}
+										alerts.append(aJson) #las guardo en json
+										#print(alerts[0])
 			if len(alerts) > 0:
-				myJson = {"_id": f,"alerts": alerts}
+				#alertJson = {"alert": {"_id":alerts["_id"], "event":{"Classification" : alerts["Classification"], "event-id" : alerts["event-id"], "event-microsecond" : alerts["event-microsecond"], "event-second" : alerts["event-second"], "priority" : alerts["priority"]}}}
+				myJson = {"flow": f["_id"], "classificationProt":f["nDPIclass"],"tupla":{"srcIP":f['srcIP'],"srcPort": f['srcPort'],"destIP":f['dstIP'],"destPort":f['dstPort'] }, "alerts": alerts}
 				hiperA.insert_one(myJson).inserted_id
 				alerts = []
 		
@@ -391,10 +480,10 @@ def menu():
 			print("\nYou might insert a number of seconds bigger than 0\n")
 			period = int(input())
 		
-		alerts = conectToDB('tranalyzer','alertas')
-		flow = conectToDB('tranalyzer','flow')	
-		hiperA = conectToDB('tranalyzer','HiperAlert')																#hiperAlert collection in mongodb 
-		lastSecondProcesed = conectToDB('tranalyzer','HiperAlert')
+		alerts = conectToDBAlerts()
+		flow = conectToDBFlow()	
+		hiperA = conectToDBHypera()																#hiperAlert collection in mongodb 
+		lastSecondProcesed = conectToDBHypera()
 		tupla = []
 		count =[]
 		idAlertas = []
@@ -456,15 +545,14 @@ def menu():
 	
 	
 	#*********************************************************		
-	#flows = conectToDB('tranalyzer','alertas')
+	#
 	# Agrupa alertas y flujos comunes ipO ipD pO pD segun el tiempo que se le pasa por parametro en sg	
-
 	#busco alertas ordenadas por event.second de menos a mas,  .sort([(campo1, pymongo.ASCENDING o 1),(campo2, pymongo.DESCENDING o -1)])
 	#agrupo alertas entre event.second de la primera y timesg, agrupo por ips, añado los flujos
 	#*********************************************************
 
 	#def groupby3(timeSg):
-	#	alerts = conectToDB('tranalyzer','alertas')
+	#	alerts = conectToDBAlerts()
 	#	pipeline = [{"$unwind":"$event.source-ip"},{"$group":{"_id":{"srcIP":"$event.source-ip", "destIP":"$event.destination-ip", "srcPort":"$event.sport-itype", "destPort":"$event.dport-icode"}, "count":{"$sum":1}}}, {"$sort":SON([("count",-1),("_id",-1)])}]
 	#	agrupIP = alerts.aggregate(pipeline) 
 		
@@ -478,24 +566,180 @@ def menu():
 	
 	
 	#end groupby3()
-
 	
-	#**************************************
+	
+	#***************************************************
+	#   group by....
+	#***************************************************
+	
+	def groupby4():
+		print("hola")
+	#end groupby4()
+	
+	#***************************************************
+	#   Search ip in hiperAlert
+	#***************************************************
+	
+	def groupby5():
+		result = []
+		wrong0 = True
+		wrong1 = True
+		query= "h"
+		hiperA = conectToDBHypera()																#hiperAlert collection in mongodb
+		
+		print("which Ip do you want to look for?")
+		ip = str(input("type sth like 192.168.198.203\n"))
+		
+		
+		while wrong1:
+			print("source IP or destination IP?")
+			query = str(input("type: src or dst \n"))
+			query = query.lower()
+			if query =="src":
+				wrong1 = False
+			if query == "dst":
+				wrong1 = False
+		
+		if query == "src":
+			#result = hiperA.find({"_id.srcIP":ip})								si group by2
+			result = hiperA.find({"tupla.srcIP":ip})
+			
+		if query == "dst":
+			#result = hiperA.find({"_id.dstIP":ip})								si group by2
+			result = hiperA.find({"tupla.destIP":ip})
+			
+		resultcount = result.count()
+		print("\n\nThere are ", resultcount,"result in BD\n")
+		
+		for r in result:
+			print("\n----------------------------------------\n")
+			pprint.pprint (r)
+		
+	#end groupby5()
+	
+	#***************************************************
+	#   Search port in hiperAlert
+	#***************************************************
+	
+	def groupby6():
+		result = []
+		port = ""
+		wrong1 = True
+		query= "h"
+		hiperA = conectToDBHypera()															#hiperAlert collection in mongodb
+
+		while (isinstance(port, int) == False):
+			print("which port do you want to look for?")
+			port = int(input("write the number of port e.g. 445\n"))
+				
+		while wrong1:
+			print("source Port or destination Port?")
+			query = str(input("type: src or dst"))
+			query = query.lower()
+			if query =="src":
+				wrong1 = False
+			if query == "dst":
+				wrong1 = False
+
+		if query == "src":
+			#result = hiperA.find({"_id.srcPort":port})
+			result = hiperA.find({"tupla.srcPort":port})
+		
+		if query == "dst":
+			#result = hiperA.find({"_id.dstPort":port})
+			result = hiperA.find({"tupla.srcPort":port})
+		
+		resultcount= result.count()
+		print("\n\nThere are ", resultcount,"result in BD\n")
+		
+		for r in result:
+			print("\n----------------------------------------\n")
+			pprint.pprint (r)
+	#end groupby6()
+	
+	#***************************************************
+	#  Search ip and port in hiperAlert"
+	#***************************************************
+	
+	def groupby7():
+		result = []
+		wrong = True
+		queryip = "h"
+		queryp = "h"
+		port = ""
+		hiperA = conectToDBHypera()																#hiperAlert collection in mongodb
+		
+		print("which Ip do you want to look for?")
+		ip = str(input("type sth like: 192.168.198.203\n"))
+		
+		
+		while wrong:
+			print("source IP or destination IP?")
+			queryip = str(input("type: src or dst\n"))
+			queryip = queryip.lower()
+			if queryip =="src":
+				wrong = False
+			if queryip == "dst":
+				wrong = False
+		
+		while (isinstance(port, int) == False):
+			print("which port do you want to look for?")
+			port = int(input("write the number of port e.g. 445\n"))
+		
+		wrong = True
+		while wrong:
+			print("source Port or destination Port?")
+			queryp = str(input("type: src or dst\n"))
+			queryp = queryp.lower()
+			if queryp =="src":
+				wrong = False
+			if queryp == "dst":
+				wrong = False
+
+		if queryip == "src":
+			if queryp == "src":
+				result = hiperA.find({"_id.srcPort":port, "_id.srcIP":ip})
+			if queryp == "dst":
+				result = hiperA.find({"_id.dstPort":port, "_id.srcIP":ip})
+
+		if queryip == "dst":
+			if queryp == "src":
+				result = hiperA.find({"_id.srcPort":port, "_id.dstIP":ip})
+			if queryp == "dst":
+				result = hiperA.find({"_id.dstPort":port, "_id.dstIP":ip})
+
+		resultcount= result.count()
+		print("\n\nThere are ", resultcount,"result in BD\n")
+		
+		for r in result:
+			print("\n----------------------------------------\n")
+			pprint.pprint (r)
+	#end groupby7()
+	
+	#***************************************************
+	#   Search classification protocol in hiperAlert"
+	#***************************************************
+	
+	def groupby8():
+		nDPIclass
+	#end groupby8()
+	
+	#***************************************************
 	#   if you select an wrong option in menu	
-	#**************************************
+	#***************************************************
 	def default():
 		print("Wrong option")
 
-	#**************************************
+	#***************************************************
 	#   exit the program	
-	#**************************************
+	#***************************************************
 	
 	def exitp():
 		return 0
 	
-	#*****************************************
+	#********************************************************
 	#    add yours functions to do queryes to mongo here....
-	#*****************************************	
+	#********************************************************	
 	#
 	#def myfunction(): 
 	#	......
@@ -507,6 +751,11 @@ def menu():
 		1 : groupby1,
 		2 : groupby2,
 		3 : groupby3,
+		4 : groupby4,
+		5 : groupby5,
+		6 : groupby6,
+		7 : groupby7,
+		8 : groupby8,
 		#add yours queryes to mongo here....
 		999 : default
 	}
@@ -521,24 +770,30 @@ def menu():
 
 if __name__ == '__main__':
 	#parsertime()
-	event = None
+	#		event = None
 	#lastTimeAnalized(3)
 	#print(GetlastTimeAnalized())
 	#UpdateLTAnalized(10)
-	while(event == None):
-		print("\n************************************************************")
-		print("**                    Correlator                          **")
-		print("************************************************************\n")
-		print("This program  correlates flow, alerts and events to facilitate\nthe CSO's task of evaluating possible cyber attack")
-		print("\n")
-		print("Select the number of one method of correlation:\n")
-		print("1 Group by Source IP, Source Port, Destination IP, Destination \n  Port and flow clasification.\n")
-		print("2 Group by alerts and events in each flow\n") 
-		print("3 Group by 1 but in a period of time (in seconds)\n") 
-		print("4 Group by\n") 
-		#add yours queryes to mongo here....
-		print("0 exit program\n")
-		event = menu()
+	
+	#while(event == None):
+	#	print("\n************************************************************")
+	#	print("**                    Correlator                          **")
+	#	print("************************************************************\n")
+	#	print("This program  correlates flow, alerts and events to facilitate\nthe CSO's task of evaluating possible cyber attack")
+	#	print("\n")
+	#	print("Select the number of one method of correlation:\n")
+	#	print("1 Group by Source IP, Source Port, Destination IP, Destination \n  Port and flow clasification.\n")
+	#	print("2 Group by alerts and events in each flow\n") 
+	#	print("3 Group by 1 but in a period of time (in seconds)\n") 
+	#	print("4 Group by\n") 
+	#	print("5 Search ip in hiperAlert\n")
+	#	print("6 Search port in hiperAlert\n")
+	#	print("7 Search ip and port in hiperAlert\n")
+	#	print("8 Search classification protocol in hiperAlert\n")
+	#	#add yours queryes to mongo here....
+	#	print("0 exit program\n")
+	#	event = menu()
 
-		
+	lista = []
+	lista = getIPListAlerts()	
 	
