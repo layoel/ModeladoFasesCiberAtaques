@@ -1,25 +1,265 @@
 from tkinter import *
-from Hyperalert import *
+from tkinter import ttk
+from tkinter import messagebox						#create message
+from PIL import ImageTk
+from Controlador import Hyperalert, getHAlert, getIPListAlerts
+
 
 def conexionNodes():
 	conexionHA = conectToDBNodes("tranalyzer", "nodes")  
 	return conexionHA
 	
+
+def showIP(): #muestra la lista de ips
+
+	ipText = Text(frTopCenter, padx = 8, pady= 4) #lista de ips
+	listIPs = []
+	listIPs = getIPListAlerts()
+	for i in listIPs:
+		ipText.insert(END, i + '\n')
+	ipText.grid(column=1 , row=0)
+
+def getHyperA():
+
+	Hyperalert()
+	hyperA = getHAlert()
+	row=0
+	row1=0
+	for doc in hyperA:
+		#********************************************************************
+		#                		 top right full frame
+		#********************************************************************
+		frTopRightFull =  LabelFrame(frTopRight,text= ("HyperAlert ID:",doc["_id"]), font= ("verdana",8, "bold"), padx = 5, pady=10)			#creo el frame
+		frTopRightFull.grid(column = 2, row = row)
+			#********************************************************************
+			#                		 top right left frame: Information
+			#********************************************************************
+		frTopRightLeft =  LabelFrame(frTopRightFull,text= ("Information"), font= ("verdana",8, "bold"), padx = 5, pady=10)			#creo el frame
+		frTopRightLeft.grid(column = 2, row = row)
+
+		Label(frTopRightLeft, text = "Flow ID", font= ("verdana",8, "bold"), justify = "left" ).grid(column=2, row=row)
+		Label(frTopRightLeft, text = doc["flow"] , font= ("verdana",8)).grid(column=3, row=row)
+		row=row+1
+		
+		Label(frTopRightLeft, text = "Protocol",font= ("verdana",8, "bold")).grid(column=2, row=row)
+		Label(frTopRightLeft, text = doc["classificationProt"], font= ("verdana",8)).grid(column=3, row=row)
+		row=row+1
+
+		tupla = doc["tupla"]
+		
+		Label(frTopRightLeft, text = "Source IP" ,font= ("verdana",8, "bold")).grid(column=2, row=row)
+		Label(frTopRightLeft, text = tupla["srcIP"] , font= ("verdana",8)).grid(column=3, row=row)
+		row=row+1
+		
+		Label(frTopRightLeft, text = "Source Port", font= ("verdana",8, "bold")  ).grid(column=2, row=row)
+		Label(frTopRightLeft, text = tupla["srcPort"] , font= ("verdana",8) ).grid(column=3, row=row)
+		row=row+1
+		
+		Label(frTopRightLeft, text = "Dest IP", font= ("verdana",8, "bold") ).grid(column=2, row=row)
+		Label(frTopRightLeft, text = tupla["destIP"] , font= ("verdana",8) ).grid(column=3, row=row)
+		row=row+1
+
+		Label(frTopRightLeft, text= "Dest Port", font= ("verdana",8, "bold") ).grid(column=2, row=row)
+		Label(frTopRightLeft, text= tupla["destPort"] , font= ("verdana",8) ).grid(column=3, row=row)
+		row=row+1
+			#********************************************************************
+			#                		 top right right frame: Alerts
+			#********************************************************************
+		frTopRightRight =  LabelFrame(frTopRightFull,text= ("Alerts"), font= ("verdana",8, "bold"), padx = 5, pady=10)			#creo el frame
+		frTopRightRight.grid(column=4, row = row1)
+
+		alertas= doc["alerts"]
+
+		Label(frTopRightRight, text = "Priority", font= ("verdana",8, "bold") ).grid(column=4, row=row1)
+		Label(frTopRightRight, text = "Alert ID", font= ("verdana",8, "bold") ).grid(column=5, row=row1)
+		Label(frTopRightRight, text = "Classification", font= ("verdana",8, "bold") ).grid(column=6, row=row1)
+		Label(frTopRightRight, text = "Event ID", font= ("verdana",8, "bold") ).grid(column=7, row=row1)
+		Label(frTopRightRight, text = "Event Seconds", font= ("verdana",8, "bold") ).grid(column=8, row=row1)
+		Label(frTopRightRight, text = "Event MicroSeconds", font= ("verdana",8, "bold") ).grid(column=9, row=row1)
+		
+		row1=row1+1
+		for a in alertas:
+			al = a['alert']
+			event= al['event']
+			if event["priority"] == 1:
+				color="red"
+			if event["priority"] == 2:
+				color="orange"
+			if event["priority"] == 3:
+				color="yellow"
+			if event["priority"] == 4:
+				color="green"
+
+			Label(frTopRightRight, text = event["priority"], font= ("verdana",8), bg=color ).grid(column=4, row=row1)
+			Label(frTopRightRight, text = al["_id"], font= ("verdana",8) , bg=color).grid(column=5, row=row1)
+			Label(frTopRightRight, text = event["classification"], font= ("verdana",8) , bg=color).grid(column=6, row=row1)
+			Label(frTopRightRight, text = event["event-id"], font= ("verdana",8) , bg=color).grid(column=7, row=row1)
+			Label(frTopRightRight, text = event["event-second"], font= ("verdana",8) , bg=color).grid(column=8, row=row1)
+			Label(frTopRightRight, text = event["event-microsecond"], font= ("verdana",8) , bg=color).grid(column=9, row=row1)
+			row1=row1+1
 	
-def table():
-	rows = []
-
-	for i in range(5):
-		cols = []
-		for j in range(4):
-			e = Entry(relief=GROOVE)
-			e.grid(row=i, column=j, sticky=NSEW)
-			e.insert(END, '%d.%d' % (i,j))
-			cols.append(e)
-		rows.append(cols)
 
 
-mainloop()
+def getGraphL1():
+	return 0
+def getGraphL2():
+	return 0
+def getGraphL3():
+	return 0
+
+
+#*********************************************
+#                  MAIN PROGRAM
+#*********************************************
+
+if __name__ == '__main__':	
+
+
+	window = Tk()
+
+	window.title("Phases of a Cyber-Attack tool")
+	window.geometry("1024x768")
+	window.attributes("-fullscreen", False)
+
+
+
+	#********************************************************************
+	#               crear una etiqueta y mostrarla
+	#********************************************************************
+	#mylable = Label(window, text="Hello world")
+	#mylable.pack()
+
+	#********************************************************************
+	#             crear el lienzo y ponen el wallpaper
+	#********************************************************************
+	background = Canvas(window, width= 1024, height =768, bg= "#6600cc")
+	background.pack(expand= True, fill = BOTH)
+	image= ImageTk.PhotoImage(file = "./images/wallpaper.png")
+	background.create_image(0,0, image = image, anchor= NW)
+
+	#********************************************************************
+	#                 		top left frame
+	#********************************************************************
+
+	frTopLeft = LabelFrame(background, padx =5, pady=5)
+	#frTopLeft.pack()
+	frTopLeft.grid(column=0, row=0) #distancia a los bordes de la window
+	#********************************************************************
+	#                		 top center frame
+	#********************************************************************
+
+	frTopCenter =  LabelFrame(background,text= "IPs List", padx = 5, pady=5)
+	#frTopCenter.pack()
+	frTopCenter.grid(column=1, row=0)
+
+	#********************************************************************
+	#                		 top right frame
+	#********************************************************************
+
+	frTopRight =  LabelFrame(background,text= "Hyper Alerts List", padx = 5, pady=5)
+	frTopRight.grid(column=2, row=0)
+
+
+
+
+	#********************************************************************
+	#                		 bottom left frame
+	#********************************************************************
+
+	frBottomLeft =  LabelFrame(background,text= "Interaction Graph", padx = 5, pady=5)
+	frBottomLeft.grid(column=0, row=6)
+
+	#********************************************************************
+	#                		 bottom right frame
+	#********************************************************************
+
+	frBottomRight =  LabelFrame(background,text= "Graphs Nodes Info", padx = 5, pady=5)
+	frBottomRight.grid(column=1, row=6)
+
+
+
+
+	#********************************************************************
+	#                 top left frame: buttons
+	#********************************************************************
+	#create a button: Button(window, text="HyperAlert")
+	hyperaButton = Button(frTopLeft, text="Show HyperAlert", padx = 16, pady= 2, command= getHyperA, bg= "#6600cc", fg= "#111111")
+	hyperaButton.grid(row=0, column = 0)
+
+	ipListButton = Button(frTopLeft, text="Show IPs" ,padx = 16, pady= 2, command= showIP,  bg= "#6600cc",fg= "#111111")
+	ipListButton.grid(row=1, column = 0)
+
+	graphL1Button = Button(frTopLeft, text="Interaction Graph L1", padx = 16, pady= 2, command= getGraphL1,bg= "#6600cc",  fg= "#111111")
+	graphL1Button.grid(row=2, column = 0)
+
+	graphL2Button = Button(frTopLeft, text="Interaction Graph L2", padx = 16, pady= 2, command= getGraphL2, bg= "#6600cc",fg= "#111111")
+	graphL2Button.grid(row=3, column = 0)
+
+	graphL3Button = Button(frTopLeft, text="Interaction Graph L3", padx = 16, pady= 2, command= getGraphL3, bg= "#6600cc",fg= "#111111")
+	graphL3Button.grid(row=4, column = 0)
+
+
+	#********************************************************************
+	#                 top center frame: ips list
+	#********************************************************************
+
+	#***********
+	# input box
+	#***********
+	#ipL1 = Button(frTopCenter, text="Interaction Graph L2")
+	#ipL1.grid(row=0, column = 1)
+
+
+
+
+	#canvasTopLeft = Canvas(frTopLeft)
+	#scrollbarfrTopLeft = ttk.Scrollbar(frTopLeft, orient = "vertical", command = canvasTopLeft.yview)
+	#scrollableTopLeft= ttk.Frame(frTopLeft)
+	#scrollableTopLeft.bind("<Configure>", lambda e: canvasTopLeft.configure(scrollregion= canvasTopLeft.bbox("all")))
+
+	#frTopCenter = Frame (window)
+	#frTopRight = Frame(window)
+	#frBottomLeft = Frame(window)
+	#frBottomRight = Frame(window)
+
+
+
+
+
+
+
+	#create line: mycanvas.create_line(x1, x2, y1, y2, fill = "color")
+	#canvas.create_line(20, 20, 90, 20, fill = "white")
+
+
+	#padding = 3
+	#ancho = 8
+	#alto = 2
+
+
+	#hyperaButton = Button(frTopLeft, text="HyperAlert",width = ancho, height = alto, fg= "#6600cc", command = lambda: showIP(window)).place(x = 8, y = 10 )
+
+	#ipListButton = Button(window, text="Show IPs",width = ancho, height = alto, fg= "#6600cc").place(x = 8, y = 10+padding*10*alto )
+
+	#graphL1Button = Button(window, text="Interaction Graph L1",width = ancho+8, height = alto, fg= "#6600cc").place(x = 8, y = 10+padding*20*alto )
+	#graphL1Button.grid()
+
+	#graphL2Button = Button(window, text="Interaction Graph L2",width = ancho+8, height = alto, fg= "#6600cc").place(x = 8, y = 10+padding*30*alto )
+	#graphL2Button.grid()
+
+	#graphL3Button = Button(window, text="Interaction Graph L3",width = ancho+8, height = alto, fg= "#6600cc").place(x = 8, y = 10+padding*40*alto )
+	#graphL3Button.grid()
+
+
+
+	#table = ttk.Treeview(window, columns = 1)
+	#table.grid(row=1,column =0, columnspan = 1)
+	#table.heading("#0", text="IPs")
+
+
+
+
+	window.mainloop()
 		
 
 
