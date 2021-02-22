@@ -9,7 +9,8 @@ import pprint 																																	# to print json format like prett
 import calendar																																	# to get datetime now
 import bisect																											              # to order list with bisection algorithm
 from iso8601 import parse_date																									# to parse isotime to unixtime
-
+import networkx as nx  #to create the graph
+import matplotlib.pyplot as plt #to draw the graph
 
 #********************************************************
 #   it make the conection to mongodb into a collection
@@ -324,6 +325,7 @@ def isBetween(sgInit, sgFin, num):
 #   get all hyperalerts
 #**************************************************************************************
 def getHAlert():
+	Hyperalert()
 	hyperA = conectToDBHypera()
 	allHyperA = hyperA.find()
 
@@ -588,42 +590,26 @@ def groupby4():
 #   Search ip in hiperAlert
 #***************************************************
 
-def groupby5():
+def SearchIpInHyperAlert(ip,where): #where puede ser src o dst
 	result = []
-	wrong0 = True
-	wrong1 = True
-	query= "h"
+
 	hiperA = conectToDBHypera()																#hiperAlert collection in mongodb
 	
-	print("which Ip do you want to look for?")
-	ip = str(input("type sth like 192.168.198.203\n"))
+	where = where.lower()
 	
-	
-	while wrong1:
-		print("source IP or destination IP?")
-		query = str(input("type: src or dst \n"))
-		query = query.lower()
-		if query =="src":
-			wrong1 = False
-		if query == "dst":
-			wrong1 = False
-	
-	if query == "src":
-		#result = hiperA.find({"_id.srcIP":ip})								si group by2
+	if where == "src":
 		result = hiperA.find({"tupla.srcIP":ip})
 		
-	if query == "dst":
-		#result = hiperA.find({"_id.dstIP":ip})								si group by2
+	if where == "dst":
 		result = hiperA.find({"tupla.destIP":ip})
 		
-	resultcount = result.count()
-	print("\n\nThere are ", resultcount,"result in BD\n")
+	#resultcount = result.count()
+
+	#for a in result:
+	#	pprint.pprint(a)
+	#	print("----------------")
 	
-	for r in result:
-		print("\n----------------------------------------\n")
-		pprint.pprint (r)
-	
-#end groupby5()
+	return result
 
 #***************************************************
 #   Search port in hiperAlert
@@ -745,6 +731,26 @@ def default():
 def exitp():
 	return 0
 
+
+#********************************************************
+#    Get nodes and edges from a ip it returns a dict [srcIP, destIP, hiperA]
+#********************************************************	
+
+def getNodesAndEdges(ip, where): #wherw puede ser src o dst
+	nodes = []
+	where = where.lower()
+	hiperA = SearchIpInHyperAlert(ip,where)
+	for a in hiperA:
+		tupla=a["tupla"]
+		if where == "src":
+			grafo = {"srcIP":ip,"destIP":tupla["destIP"], "HyperA":a}
+		if where == "dst":
+			grafo = {"srcIP":tupla["srcIP"],"destIP":ip, "HyperA":a}
+		nodes.append(grafo)
+
+	return nodes
+
+
 #********************************************************
 #    add yours functions to do queryes to mongo here....
 #********************************************************	
@@ -771,12 +777,37 @@ def diccionario():
 
 	return event
 
+def createGrafo(nodesEdges, graph):
+
+	newGraph = nx.Graph()
+	for n in nodesEdges:
+		srcIP = n["srcIP"]
+		destIP = n["destIP"]
+		hypera = {"HyperA" : n["HyperA"]}
+		
+		newGraph.add_nodes_from([(srcIP, hypera),(destIP, hypera)])
+		newGraph.add_edge(srcIP,destIP)
+	#newGraph.add_node("hola")
+	#newGraph.add_node("como")
+	#newGraph.add_node("estas")
+	#newGraph.add_edge("hola", "como")
+	#newGraph.add_edge("como", "estas")
+	print(newGraph.number_of_nodes())
+	print(newGraph.number_of_edges())
 
 #*********************************************
 #                  MAIN PROGRAM
 #*********************************************
 
 if __name__ == '__main__':
+	nodes=[]
+	#SearchIpInHyperAlert("192.168.198.203","src")
+	nodesEdges = getNodesAndEdges("192.168.198.203", "src")
+
+	new= nx.Graph()
+	createGrafo(nodesEdges, new)
+
+
 #parsertime()
 #		event = None
 #lastTimeAnalized(3)
@@ -801,6 +832,4 @@ if __name__ == '__main__':
 #	#add yours queryes to mongo here....
 #	print("0 exit program\n")
 #	event = menu()
-
-	Hyperalert()	
 
