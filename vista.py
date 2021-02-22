@@ -196,18 +196,17 @@ if __name__ == '__main__':
 	#backgroundR = Canvas(container, width= 100, height =200, bg= "#6600cc")
 	#backgroundR.grid(row=0, column=2, columnspan=8,rowspan=6, sticky=N+S+W+E)
 	#backgroundR.create_image(0,0, image = image, anchor= NW)
-	frTopRight =  LabelFrame(container,text= "Hyper Alerts List", padx = 5, pady=5, width= 600, height=200)
+	frTopRight =  LabelFrame(container,text= "Hyper Alerts List", padx = 5, pady=5, width= 600, height=155)
 	frTopRight.grid(column=2, row=0, rowspan=6,columnspan=8, sticky=N+W+E)
 
 	## HYPERALERT FONDO
-	backgroundR = Canvas(frTopRight, width= 600, height =200, bg= "#6600cc")
+	backgroundR = Canvas(frTopRight, width= 600, height =155, bg= "#6600cc")
 	backgroundR.grid(row=0, column=2, columnspan=8,rowspan=6, sticky=N+S+W+E)
 	#transpImg = ImageTk.PhotoImage(file = "./images/wallpaper.png")
 	#backgroundT.create_image(0,0, image = transpImg, anchor= NW)
-	## GRAPH FONDO
-	## NODE FONDO
 
-	scrollbarBGFrame=Scrollbar(frTopRight, orient="vertical", command=backgroundR.yview)
+	scrollbarTRVFrame=Scrollbar(frTopRight, orient=VERTICAL, command=backgroundR.yview) #scroll vertical
+	scrollbarTRHFrame=Scrollbar(frTopRight, orient=HORIZONTAL, command=backgroundR.xview) #scroll Horizontal
 	scrollableFrame= Frame(backgroundR)
 	scrollableFrame.bind(
 		"<Configure>",
@@ -216,21 +215,21 @@ if __name__ == '__main__':
 			)
 		)
 	backgroundR.create_window((0,0), window=scrollableFrame, anchor="nw")
-	backgroundR.configure(yscrollcommand=scrollbarBGFrame.set)
-	scrollbarBGFrame.grid(row=0, column=10, rowspan=6, sticky=N+S+W+E)
-
+	backgroundR.configure(yscrollcommand=scrollbarTRVFrame.set, xscrollcommand=scrollbarTRHFrame.set)
+	scrollbarTRVFrame.grid(row=0, column=10, rowspan=6, sticky=N+S+W+E)
+	scrollbarTRHFrame.grid(row=6, column=0, columnspan=10, sticky=W+E)
 
 	#********************************************************************
 	#                		 bottom left frame
 	#********************************************************************
-
+	## GRAPH FONDO
 	frBottomLeft =  LabelFrame(container,text= "Interaction Graph", padx = 5, pady=5)
 	frBottomLeft.grid(column=0, row=6, sticky=W+E)
 
 	#********************************************************************
 	#                		 bottom right frame
 	#********************************************************************
-
+	## NODE FONDO
 	frBottomRight =  LabelFrame(container,text= "Graphs Nodes Info", padx = 5, pady=5)
 	frBottomRight.grid(column=1, row=6, sticky=W+E)
 
