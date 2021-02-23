@@ -776,23 +776,7 @@ def exitp():
 	return 0
 
 
-#********************************************************
-#    Get nodes and edges from a ip it returns a dict [srcIP, destIP, hiperA]
-#********************************************************	
 
-def getNodesAndEdges(ip, where): #wherw puede ser src o dst
-	nodes = []
-	where = where.lower()
-	hiperA = SearchIpInHyperAlert(ip,where)
-	for a in hiperA:
-		tupla=a["tupla"]
-		if where == "src":
-			grafo = {"srcIP":ip,"destIP":tupla["destIP"], "HyperA":a}
-		if where == "dst":
-			grafo = {"srcIP":tupla["srcIP"],"destIP":ip, "HyperA":a}
-		nodes.append(grafo)
-
-	return nodes
 
 
 #********************************************************
@@ -821,27 +805,64 @@ def diccionario():
 
 	return event
 
-def createGrafo(nodesEdges, graph):
-	newGraph = Digraph("comment= Graph L1")
+
+#********************************************************
+#    Get nodes and edges from a ip it returns a dict [srcIP, destIP, hiperA]
+#********************************************************	
+
+def getNodesAndEdges(ip, where): #wherw puede ser src o dst
+	nodes = []
+	where = where.lower()
+	hiperA = SearchIpInHyperAlert(ip,where)
+
+	for a in hiperA:
+		tupla=a["tupla"]
+		if where == "src":
+			h = a["HyperA"]
+			grafo = [tupla["destIP"], h["criticality"]]
+		if where == "dst":
+			grafo = [tupla["srcIP"], h["criticality"]]
+		nodes.append(grafo)
+
+	return nodes
+
+
+
+def addNode(graph, parent, node, label):
+	newGraph = Digraph(comment ='Graph', format = 'png')
+	newGraph = graph
+	newGraph.node(node, node, shape ='egg')
+	newGraph.edge(parent, node, label = label)
+
+	return newGraph
+#*********************************************
+#                  returns a list where list[0]= newgraph list[1] = sonNode, list[3] = parentNode
+#*********************************************
+
+def createFirstNode(ip, nodesEdges):
+	newGraph = Digraph(comment ='Graph', format = 'png')
 	#newGraph = nx.Graph()
-	numNode=0
+	lista = []
+	hpera=[]
+	criticality = []
+	nodes = []
+
 	for n in nodesEdges:
 		srcIP = n["srcIP"]
 		destIP = n["destIP"]
-		hypera = {"HyperA" : n["HyperA"]}
-		
-	#	newGraph.add_nodes_from([(srcIP, hypera),(destIP, hypera)])
-	#	newGraph.add_edge(srcIP,destIP)
-	#print(newGraph.number_of_nodes())
-	#print(newGraph.number_of_edges())
-		graph.node(numNode, srcIP)
-		graph.node(numNode+1, destIP)
-		graph.edge(numNode, numNode+1)
-		numNode = numNode+2
+		#hypera = {"HyperA" : n}
+		h = n["HyperA"]
+		criticality.append(h["criticality"])
 
+	crit = calculateCriticality(criticality)
+	label = "criticality: " + str(crit)
+	newGraph.node(srcIP, srcIP, shape ='egg')
 
-	return graph
-
+	newGraph = addNode(newGraph, srcIP, destIP, label)
+	lista.apend(newGraph)
+	lista.append(destIP)
+	lista.append(ip)
+	return lista
 
 #*********************************************
 #                  MAIN PROGRAM
@@ -853,15 +874,23 @@ if __name__ == '__main__':
 	Hyperalert()
 
 
-#nodes=[]
+	nodes=[]
 	#SearchIpInHyperAlert("192.168.198.203","src")
-#nodesEdges = getNodesAndEdges("192.168.198.203", "src")
+	nodesEdges = getNodesAndEdges("192.168.198.203", "src")
 
 	#new= nx.Graph()
-#grafo = Digraph("comment= Graph L1")
-#grafo = createGrafo(nodesEdges, grafo)
-#print(grafo.source)
-#grafo.view()
+	grafo = Digraph(comment ='GraphL1', format = 'png')
+	grafo = createGraph(nodesEdges)
+
+	nodesEdges = getNodesAndEdges("192.168.198.204", "src")
+
+	#new= nx.Graph()
+	#grafo = Digraph(comment ='GraphL1', format = 'png')
+	grafo = addNode(nodesEdges, grafo)
+
+	print(grafo.source)
+	grafo.render('Graph L1.gv.pdf', view=True)
+	grafo.view()
 
 #parsertime()
 #		event = None
