@@ -9,8 +9,9 @@ import pprint 																																	# to print json format like prett
 import calendar																																	# to get datetime now
 import bisect																											              # to order list with bisection algorithm
 from iso8601 import parse_date																									# to parse isotime to unixtime
-import networkx as nx  #to create the graph
-import matplotlib.pyplot as plt #to draw the graph
+#import networkx as nx  #to create the graph
+#import matplotlib.pyplot as plt #to draw the graph
+from graphviz import Digraph
 
 #********************************************************
 #   it make the conection to mongodb into a collection
@@ -332,6 +333,42 @@ def getHAlert():
 	return allHyperA
 	
 #**************************************************************************************
+#   method valuate criticality of alerts p1, p2 and p3
+#**************************************************************************************	
+def getCriticidadHA(aP1,aP2, aP3): #alta, medio, baja, muy baja.
+	
+	if aP1 >= 3:
+		criticidad = 1
+	elif aP2 >= 3: 
+		criticidad = 2
+	elif aP3 >= 3:
+		criticidad = 3
+	else:
+		criticidad = 4
+
+	return criticidad
+
+#**************************************************************************************
+#   method to calulate criticality of a hyperAlert
+#**************************************************************************************
+def calculateCriticality(allPriorities):
+	countP1 = 0
+	countP2 = 0
+	countP3 = 0
+
+	for a in allPriorities:
+		if a ==1:
+			countP1 = countP1+1
+		if a ==2:
+			countP2 = countP2+1
+		if a ==3:
+			countP3 = countP3+1	
+
+	criticality=getCriticidadHA(countP1,countP2, countP3)
+
+	return criticality
+
+#**************************************************************************************
 #   group by alerts and flow with equal (srcIP, srcPort, dstIp, dstPort)
 #**************************************************************************************
 
@@ -344,7 +381,8 @@ def Hyperalert():
 	tupla = []
 	count =[]
 	idAlertas = []
-	
+	allPriorities = []
+
 	#find the same ip and aggregate:
 	pipeline = [{"$unwind":"$event.source-ip"},{"$group":{"_id":{"srcIP":"$event.source-ip", "destIP":"$event.destination-ip", "srcPort":"$event.sport-itype", "destPort":"$event.dport-icode"}, "count":{"$sum":1}}}, {"$sort":SON([("count",-1),("_id",-1)])}]
 	agrupIP = alerts.aggregate(pipeline) 
@@ -360,8 +398,11 @@ def Hyperalert():
 		findal = alerts.find({"event.source-ip":srcIP, "event.destination-ip":destIP,  "event.sport-itype":srcPort, "event.dport-icode":destPort},{"_id":1,"event.event-id":1, "event.classification" :1, "event.priority":1, "event.event-second":1, "event.event-microsecond":1}) #alerts	
 		
 		for b in findal:
-			cadena = {"alert":{"_id":b["_id"],"event":b["event"]}}
+			event = b["event"]
+			cadena = {"alert":{"_id":b["_id"],"event":event}}
+			priority = event["priority"]
 			idAlertas.append(cadena)
+			allPriorities.append(priority)
 			#pprint.pprint(b)
 		#--------------------------------------#
 
@@ -371,13 +412,16 @@ def Hyperalert():
 			prot = c["nDPIclass"]
 			#pprint.pprint(c["_id"])
 			#pprint.pprint(c["nDPIclass"])
-		
+		level = calculateCriticality(allPriorities)
+
 		#insert into hiperalertas tupla, count, b["_id"], flows and the protocol type
 		myJson= {"tupla": a["_id"],
 				"nAlerts": a["count"],
 				"alerts": idAlertas,
 				"flow" : flowid,
-				"classificationProt":prot}
+				"classificationProt":prot,
+				"criticality": level}
+		allPriorities = []
 		#pprint.pprint(myJson)
 		idAlertas = []																				
 		hiperA.insert_one(myJson).inserted_id																					#Insert new file in mongo
@@ -778,35 +822,46 @@ def diccionario():
 	return event
 
 def createGrafo(nodesEdges, graph):
-
-	newGraph = nx.Graph()
+	newGraph = Digraph("comment= Graph L1")
+	#newGraph = nx.Graph()
+	numNode=0
 	for n in nodesEdges:
 		srcIP = n["srcIP"]
 		destIP = n["destIP"]
 		hypera = {"HyperA" : n["HyperA"]}
 		
-		newGraph.add_nodes_from([(srcIP, hypera),(destIP, hypera)])
-		newGraph.add_edge(srcIP,destIP)
-	#newGraph.add_node("hola")
-	#newGraph.add_node("como")
-	#newGraph.add_node("estas")
-	#newGraph.add_edge("hola", "como")
-	#newGraph.add_edge("como", "estas")
-	print(newGraph.number_of_nodes())
-	print(newGraph.number_of_edges())
+	#	newGraph.add_nodes_from([(srcIP, hypera),(destIP, hypera)])
+	#	newGraph.add_edge(srcIP,destIP)
+	#print(newGraph.number_of_nodes())
+	#print(newGraph.number_of_edges())
+		graph.node(numNode, srcIP)
+		graph.node(numNode+1, destIP)
+		graph.edge(numNode, numNode+1)
+		numNode = numNode+2
+
+
+	return graph
+
 
 #*********************************************
 #                  MAIN PROGRAM
 #*********************************************
 
 if __name__ == '__main__':
-	nodes=[]
+	
+
+	Hyperalert()
+
+
+#nodes=[]
 	#SearchIpInHyperAlert("192.168.198.203","src")
-	nodesEdges = getNodesAndEdges("192.168.198.203", "src")
+#nodesEdges = getNodesAndEdges("192.168.198.203", "src")
 
-	new= nx.Graph()
-	createGrafo(nodesEdges, new)
-
+	#new= nx.Graph()
+#grafo = Digraph("comment= Graph L1")
+#grafo = createGrafo(nodesEdges, grafo)
+#print(grafo.source)
+#grafo.view()
 
 #parsertime()
 #		event = None
