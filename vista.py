@@ -1,8 +1,10 @@
+import tkinter as tk
 from tkinter import *
 from tkinter import ttk
 from tkinter import messagebox						#create message
-from PIL import ImageTk
-from Controlador import Hyperalert, getHAlert, getIPListAlerts
+from PIL import Image, ImageTk
+from Controlador import Hyperalert, getHAlert, getIPListAlerts, parsertime
+import tkinter.font as tkFont
 
 def scrollFrame(frame, canvas, rowspan):
 
@@ -36,9 +38,34 @@ def showIP(): #muestra la lista de ips
 		#ipText.insert(END, i + '\n')
 	#ipText.grid(column=1 , row=0)
 
+def showDataAlert(tabla1, query):
+	count = 0
+
+	for a in query:
+		al = a['alert']
+		event= al['event']
+		if event["priority"] == 1:
+			color="red"
+		if event["priority"] == 2:
+			color="orange"
+		if event["priority"] == 3:
+			color="yellow"
+		if event["priority"] == 4:
+			color="green"
+
+
+		tabla1.insert("",'end',text=event["priority"], values = (al["_id"], event["classification"], event["event-id"], event["event-second"], event["event-microsecond"]),tags= color)
+		tabla1.tag_configure("red", background="#FF0000")
+		tabla1.tag_configure("orange", background="#FFC100")
+		tabla1.tag_configure("yellow", background="#FFFF1B")
+		tabla1.tag_configure("green", background="#ACFF1B")
+		count=count+1
+	return count
+
+
+
 def getHyperA():
 
-	Hyperalert()
 	hyperA = getHAlert()
 	row=0
 	row1=0
@@ -46,84 +73,78 @@ def getHyperA():
 	for doc in hyperA:
 		alertas= doc["alerts"]
 		nAlerts= int(doc["nAlerts"])
-		if nAlerts >= 6:
-			rowspan = nAlerts
-		if nAlerts < 6:
-			rowspan = 6
+		
 		#********************************************************************
 		#                		 top right full frame
 		#********************************************************************
 		frTopRightFull =  LabelFrame(scrollableFrame,text= ("HyperAlert ID:",doc["_id"]), font= ("verdana",8, "bold"), padx = 10, pady=10)			#creo el frame
-		frTopRightFull.grid(column = 2, row = row, rowspan=rowspan,columnspan=8, sticky=W+E+N+S)
+		frTopRightFull.grid(column = 2, row = row, rowspan=(nAlerts),columnspan=7, sticky=W+E+N+S)
 			#********************************************************************
 			#                		 top right left frame: Information
 			#********************************************************************
 		frTopRightLeft =  LabelFrame(frTopRightFull,text= ("Information"), font= ("verdana",8, "bold"), padx = 5, pady=5)			#creo el frame
-		frTopRightLeft.grid(column = 2, row = row, rowspan=rowspan, columnspan=2,sticky=W+E+N+S)
+		frTopRightLeft.grid(column = 2, row = row, rowspan=(nAlerts), columnspan=2,sticky=W+E+N+S)
 
-		Label(frTopRightLeft, text = "Flow ID",  anchor="w" ,font= ("verdana",8, "bold"), justify = "left" ).grid(column=2, row=row, sticky=W+E)
-		Label(frTopRightLeft, text = doc["flow"] , anchor="w" ,font= ("verdana",8)).grid(column=3, row=row,sticky=W+E)
+		tk.Label(frTopRightLeft, text = "Flow ID",  anchor="w" ,font= ("verdana",8, "bold"), justify = "left" ).grid(column=2, row=row, sticky=W+E)
+		tk.Label(frTopRightLeft, text = doc["flow"] , anchor="w" ,font= ("verdana",8)).grid(column=3, row=row,sticky=W+E)
 		row=row+1
 		
-		Label(frTopRightLeft, text = "Protocol", anchor="w" ,font= ("verdana",8, "bold")).grid(column=2, row=row, sticky=W+E)
-		Label(frTopRightLeft, text = doc["classificationProt"], anchor="w", font= ("verdana",8)).grid(column=3, row=row,sticky=W+E)
+		tk.Label(frTopRightLeft, text = "Protocol", anchor="w" ,font= ("verdana",8, "bold")).grid(column=2, row=row, sticky=W+E)
+		tk.Label(frTopRightLeft, text = doc["classificationProt"], anchor="w", font= ("verdana",8)).grid(column=3, row=row,sticky=W+E)
 		row=row+1
 
 		tupla = doc["tupla"]
 		
-		Label(frTopRightLeft, text = "Source IP" , anchor="w" ,font= ("verdana",8, "bold")).grid(column=2, row=row, sticky=W+E)
-		Label(frTopRightLeft, text = tupla["srcIP"] ,  anchor="w" ,font= ("verdana",8)).grid(column=3, row=row,sticky=W+E)
+		tk.Label(frTopRightLeft, text = "Source IP" , anchor="w" ,font= ("verdana",8, "bold")).grid(column=2, row=row, sticky=W+E)
+		tk.Label(frTopRightLeft, text = tupla["srcIP"] ,  anchor="w" ,font= ("verdana",8)).grid(column=3, row=row,sticky=W+E)
 		row=row+1
 		
-		Label(frTopRightLeft, text = "Source Port", anchor="w" , font= ("verdana",8, "bold")  ).grid(column=2, row=row, sticky=W+E)
-		Label(frTopRightLeft, text = tupla["srcPort"] , anchor="w" , font= ("verdana",8) ).grid(column=3, row=row,sticky=W+E)
+		tk.Label(frTopRightLeft, text = "Source Port", anchor="w" , font= ("verdana",8, "bold")  ).grid(column=2, row=row, sticky=W+E)
+		tk.Label(frTopRightLeft, text = tupla["srcPort"] , anchor="w" , font= ("verdana",8) ).grid(column=3, row=row,sticky=W+E)
 		row=row+1
 		
-		Label(frTopRightLeft, text = "Dest IP", anchor="w" , font= ("verdana",8, "bold") ).grid(column=2, row=row, sticky=W+E)
-		Label(frTopRightLeft, text = tupla["destIP"] ,  anchor="w" ,font= ("verdana",8) ).grid(column=3, row=row,sticky=W+E)
+		tk.Label(frTopRightLeft, text = "Dest IP", anchor="w" , font= ("verdana",8, "bold") ).grid(column=2, row=row, sticky=W+E)
+		tk.Label(frTopRightLeft, text = tupla["destIP"] ,  anchor="w" ,font= ("verdana",8) ).grid(column=3, row=row,sticky=W+E)
 		row=row+1
 
-		Label(frTopRightLeft, text= "Dest Port",  anchor="w" ,font= ("verdana",8, "bold") ).grid(column=2, row=row, sticky=W+E)
-		Label(frTopRightLeft, text= tupla["destPort"] ,  anchor="w" ,font= ("verdana",8) ).grid(column=3, row=row,sticky=W+E)
-		row=row+1
+		tk.Label(frTopRightLeft, text= "Dest Port",  anchor="w" ,font= ("verdana",8, "bold") ).grid(column=2, row=row, sticky=W+E)
+		tk.Label(frTopRightLeft, text= tupla["destPort"] ,  anchor="w" ,font= ("verdana",8) ).grid(column=3, row=row,sticky=W+E)
+		
 			#********************************************************************
 			#                		 top right right frame: Alerts
 			#********************************************************************
-		frTopRightRight =  LabelFrame(frTopRightFull,text= ("Alerts"), font= ("verdana",8, "bold"), padx = 5, pady=5)			#creo el frame
-		frTopRightRight.grid(column=4, row = row1,rowspan=rowspan, columnspan=6, sticky=W+E+N+S)
+		frTopRightRight = LabelFrame(frTopRightFull,text= ("Alerts List"), font= ("verdana",8, "bold"), padx = 5, pady=5)
+		frTopRightRight.grid(column=4, row=row1, columnspan=5, rowspan=(nAlerts))
 
-		Label(frTopRightRight, text = "Priority", font= ("verdana",8, "bold") ).grid(column=4, row=row1 ,sticky=W+E)
-		Label(frTopRightRight, text = "Alert ID", font= ("verdana",8, "bold") ).grid(column=5, row=row1,sticky=W+E)
-		Label(frTopRightRight, text = "Classification", font= ("verdana",8, "bold") ).grid(column=6, row=row1,sticky=W+E)
-		Label(frTopRightRight, text = "Event ID", font= ("verdana",8, "bold") ).grid(column=7, row=row1,sticky=W+E)
-		Label(frTopRightRight, text = "Event Seconds", font= ("verdana",8, "bold") ).grid(column=8, row=row1,sticky=W+E)
-		Label(frTopRightRight, text = "Event MicroSeconds", font= ("verdana",8, "bold") ).grid(column=9, row=row1,sticky=W+E)
-		
-		row1=row1+1
-		for a in alertas:
-			al = a['alert']
-			event= al['event']
-			if event["priority"] == 1:
-				color="red"
-			if event["priority"] == 2:
-				color="orange"
-			if event["priority"] == 3:
-				color="yellow"
-			if event["priority"] == 4:
-				color="green"
+		tabla1 = ttk.Treeview(frTopRightRight, columns= ("#0","#1","#2","#3","#4","#5"), selectmode = "browse")
+		tabla1.grid(column=4, row = row1, rowspan= 6, columnspan = 5, sticky=W+E+N+S)
 
-			Label(frTopRightRight, text = event["priority"], font= ("verdana",8), bg=color ).grid(column=4, row=row1, sticky=W+E)
-			Label(frTopRightRight, text = al["_id"], font= ("verdana",8) , bg=color).grid(column=5, row=row1, sticky=W+E)
-			Label(frTopRightRight, text = event["classification"], font= ("verdana",8) , bg=color).grid(column=6, row=row1, sticky=W+E)
-			Label(frTopRightRight, text = event["event-id"], font= ("verdana",8) , bg=color).grid(column=7, row=row1, sticky=W+E)
-			Label(frTopRightRight, text = event["event-second"], font= ("verdana",8) , bg=color).grid(column=8, row=row1, sticky=W+E)
-			Label(frTopRightRight, text = event["event-microsecond"], font= ("verdana",8) , bg=color).grid(column=9, row=row1, sticky=W+E)
-			row1=row1+1
-	
+		scrollYTable = ttk.Scrollbar(frTopRightRight, orient="vertical",command = tabla1.yview)
+		scrollYTable.grid(column=9, row = row1, rowspan=6, sticky=W+E+N+S)
+		tabla1.configure(yscrollcommand = scrollYTable.set)
+
+		tabla1.heading("#0", text= "priority")
+		tabla1.heading("#1", text= "id")
+		tabla1.heading("#2", text= "classification")
+		tabla1.heading("#3", text= "event-id")
+		tabla1.heading("#4", text= "event-second")
+		tabla1.heading("#5", text= "event-microsecond")
+
+		row1 = row1+showDataAlert(tabla1, alertas)+1
+		row = row1
 
 
 def getGraphL1():
-	return 0
+	imGraph = Image.open("GraphL1.png")
+	imGraph.resize((300,155), Image.ANTIALIAS)
+	show = ImageTk.PhotoImage(imGraph)
+
+	grafo = Canvas(frBottomLeft, width= 300, height =155, bg= "#6600cc")
+	grafo.create_image(15,0, image = imGraph, rowspan = 10, columnspan=5, anchor= NW)
+	grafo.grid(row=20, column=0, rowspan = 10, columnspan=5, sticky=N+E)
+	
+	
+
 def getGraphL2():
 	return 0
 def getGraphL3():
@@ -135,7 +156,6 @@ def getGraphL3():
 #*********************************************
 
 if __name__ == '__main__':	
-
 
 	window = Tk()
 
@@ -181,7 +201,7 @@ if __name__ == '__main__':
 	
 	frTopCenter =  LabelFrame(container,text= "IPs List", width= 100, height =200,padx = 5, pady=5)
 	#frTopCenter.pack()
-	frTopCenter.grid(column=1, row=0, rowspan=6, sticky=N+W)
+	frTopCenter.grid(column=1, row=0, rowspan=15, sticky=N+W)
 	## IPS FONDO
 	#backgroundT = Canvas(frTopCenter, width= 100, height =200, bg= "#6600cc")
 	#backgroundT.grid(row=0, column=1, rowspan=6, sticky=N+S+W+E)
@@ -223,8 +243,10 @@ if __name__ == '__main__':
 	#                		 bottom left frame
 	#********************************************************************
 	## GRAPH FONDO
+
 	frBottomLeft =  LabelFrame(container,text= "Interaction Graph", padx = 5, pady=5)
 	frBottomLeft.grid(column=0, row=6, sticky=W+E)
+
 
 	#********************************************************************
 	#                		 bottom right frame
@@ -316,9 +338,7 @@ if __name__ == '__main__':
 	#table.grid(row=1,column =0, columnspan = 1)
 	#table.heading("#0", text="IPs")
 
-	container.grid(row=0, column=0, columnspan=10,rowspan=10, sticky=N+S+W+E)
-	
-
+	container.grid(row=0, column=0, columnspan=10,rowspan=2000, sticky=N+S+W+E)
 
 	window.mainloop()
 		
