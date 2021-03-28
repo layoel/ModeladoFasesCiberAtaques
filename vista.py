@@ -6,19 +6,6 @@ from PIL import Image, ImageTk
 from Controlador import Hyperalert, getHAlert, getIPListAlerts, parsertime
 import tkinter.font as tkFont
 
-def scrollFrame(frame, canvas, rowspan):
-
-	scrollbarBGFrame=Scrollbar(frame, orient="vertical", command=canvas.yview)
-	scrollableFrame= Frame(canvas)
-	scrollableFrame.bind(
-		"<Configure>",
-		lambda e: canvas.configure(
-			scrollregion = canvas.bbox("all")
-			)
-		)
-	canvas.create_window((0,0), window=scrollableFrame, anchor="nw")
-	canvas.configure(yscrollcommand=scrollbarBGFrame.set)
-	scrollbarBGFrame.grid(row=0, column=10, rowspan=rowspan, sticky=N+S+W+E)
 
 def conexionNodes():
 	conexionHA = conectToDBNodes("tranalyzer", "nodes")  
@@ -32,8 +19,10 @@ def showIP(): #muestra la lista de ips
 	listIPs = []
 	listIPs = getIPListAlerts()
 	row=0
+	frTopCenterFull =  LabelFrame(scrollableFrameIP, padx = 10, pady=10)			#creo el frame
+	frTopCenterFull.grid(column = 1, row = 0, rowspan=(len(listIPs)), sticky=W+E+N+S)
 	for i in listIPs:
-		Label(frTopCenter, text = i, font= ("verdana",8), justify = "left" ).grid(column=1, row=row)
+		Label(frTopCenterFull, text = i, font= ("verdana",8), justify = "left" ).grid(column=1, row=row)
 		row=row+1
 		#ipText.insert(END, i + '\n')
 	#ipText.grid(column=1 , row=0)
@@ -199,9 +188,28 @@ if __name__ == '__main__':
 	#                		 top center frame
 	#********************************************************************
 	
-	frTopCenter =  LabelFrame(container,text= "IPs List", width= 100, height =200,padx = 5, pady=5)
-	#frTopCenter.pack()
-	frTopCenter.grid(column=1, row=0, rowspan=15, sticky=N+W)
+	frTopCenter =  LabelFrame(container,text= "IPs List", width= 120, height =200,padx = 5, pady=5)
+	backgroundC = Canvas(frTopCenter, width=120 , height =200, bg= "#6600cc")
+	
+	scrollbarIP = ttk.Scrollbar(frTopCenter, orient="vertical",command = backgroundC.yview)
+	scrollableFrameIP= ttk.Frame(backgroundC)
+
+	scrollableFrameIP.bind(
+		"<Configure>",
+		lambda e: backgroundC.configure(
+			scrollregion = backgroundC.bbox("all")
+			)
+		)
+
+	backgroundC.create_window((0,0), window=scrollableFrameIP, anchor="nw")
+
+	backgroundC.configure(yscrollcommand=scrollbarIP.set)
+
+	frTopCenter.grid(row=0, column=1, rowspan=15, sticky=N+W)
+	scrollbarIP.grid(row = 0, column=1, rowspan=15, sticky=E+N+S)
+	backgroundC.grid(row=0, column=1, rowspan=15, sticky=N+S+W+E)
+
+	
 	## IPS FONDO
 	#backgroundT = Canvas(frTopCenter, width= 100, height =200, bg= "#6600cc")
 	#backgroundT.grid(row=0, column=1, rowspan=6, sticky=N+S+W+E)

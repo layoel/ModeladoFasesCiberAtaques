@@ -12,6 +12,7 @@ from iso8601 import parse_date																									# to parse isotime to uni
 #import networkx as nx  #to create the graph
 #import matplotlib.pyplot as plt #to draw the graph
 from graphviz import Digraph
+timeChange = True #para la defensa cambiar a false antes de meter los datos en la bd
 
 #********************************************************
 #   it make the conection to mongodb into a collection
@@ -179,16 +180,22 @@ def isoToUnixtime(time):
 #*******************************************************************
 
 def parsertime():
-	flow = conectToDBFlow()
-	fl = flow.find()
-	for f in fl:
-		timeFirst = isoToUnixtime(f['timeFirst'])
-		timeLast = isoToUnixtime(f['timeLast'])
-		duration = isoToUnixtime(f['duration'])
-		tcpBtm = isoToUnixtime(f['tcpBtm'])
-		query = {"_id":f['_id']}
-		updates = {"$set":{"timeFirst":timeFirst, "timeLast":timeLast, "duration":duration, "tcpBtm":tcpBtm}}
-		flow.update_one(query, updates)
+	global timeChange
+	print(timeChange)
+	if timeChange == False:
+		flow = conectToDBFlow()
+		fl = flow.find()
+		for f in fl:
+			timeFirst = isoToUnixtime(f['timeFirst'])
+			timeLast = isoToUnixtime(f['timeLast'])
+			duration = isoToUnixtime(f['duration'])
+			tcpBtm = isoToUnixtime(f['tcpBtm'])
+			query = {"_id":f['_id']}
+			updates = {"$set":{"timeFirst":timeFirst, "timeLast":timeLast, "duration":duration, "tcpBtm":tcpBtm}}
+			flow.update_one(query, updates)
+		timeChange = True
+	else:
+		timeChange = True
 
 
 #*******************************************************
@@ -326,6 +333,7 @@ def isBetween(sgInit, sgFin, num):
 #   get all hyperalerts
 #**************************************************************************************
 def getHAlert():
+	parsertime()
 	Hyperalert()
 	hyperA = conectToDBHypera()
 	allHyperA = hyperA.find()
@@ -337,14 +345,15 @@ def getHAlert():
 #**************************************************************************************	
 def getCriticidadHA(aP1,aP2, aP3): #alta, medio, baja, muy baja.
 	
-	if aP1 >= 3:
+	if aP1 >= 1:
 		criticidad = 1
-	elif aP2 >= 3: 
+	elif aP2 >= 1: 
 		criticidad = 2
-	elif aP3 >= 3:
+	elif aP3 >= 1:
 		criticidad = 3
 	else:
 		criticidad = 4
+
 
 	return criticidad
 
@@ -373,7 +382,8 @@ def calculateCriticality(allPriorities):
 #**************************************************************************************
 
 def Hyperalert():
-	
+	flowid = None 
+	prot = "Unknown"
 	alerts = conectToDBAlerts()
 	flow = conectToDBFlow()	
 	hiperA = conectToDBHypera()																#hiperAlert collection in mongodb 
@@ -396,7 +406,7 @@ def Hyperalert():
 		destPort = int(tupla['destPort'])
 		#find in agrupIP the same tuplas to add in a list of events and the packet-id (is the same id than event.event-id)
 		findal = alerts.find({"event.source-ip":srcIP, "event.destination-ip":destIP,  "event.sport-itype":srcPort, "event.dport-icode":destPort},{"_id":1,"event.event-id":1, "event.classification" :1, "event.priority":1, "event.event-second":1, "event.event-microsecond":1}) #alerts	
-		
+
 		for b in findal:
 			event = b["event"]
 			cadena = {"alert":{"_id":b["_id"],"event":event}}
@@ -407,9 +417,13 @@ def Hyperalert():
 		#--------------------------------------#
 
 		findfl = flow.find({"srcIP": srcIP, "srcPort": srcPort,  "dstIP": destIP, "dstPort":destPort},{"_id":1,"nDPIclass" :1}) #flow
+
 		for c in findfl:
 			flowid = c["_id"]
+			#print(c["nDPIclass"])
+			#if c["nDPIclass"] != "Unknown":
 			prot = c["nDPIclass"]
+			
 			#pprint.pprint(c["_id"])
 			#pprint.pprint(c["nDPIclass"])
 		level = calculateCriticality(allPriorities)
@@ -646,8 +660,6 @@ def SearchIpInHyperAlert(ip,where): #where puede ser src o dst
 		
 	if where == "dst":
 		result = hiperA.find({"tupla.destIP":ip})
-		
-	#resultcount = result.count()
 
 	#for a in result:
 	#	pprint.pprint(a)
@@ -805,94 +817,166 @@ def diccionario():
 
 	return event
 
+#*********************************************
+#  Method to select the color of the edge
+#*********************************************
+def getColorCrit(crit):
 
-#********************************************************
-#    Get nodes and edges from a ip it returns a dict [srcIP, destIP, hiperA]
-#********************************************************	
+	color = "#ffffff"
+	
+	if crit == 1:
+		color = "#FF0000" #rojo
+	if crit == 2:
+		color = "#FFA600" #naranja
+	if crit == 3:
+		color = "#F0FF00" #amarillo
+	if crit == 4:
+		color = "#00FF00" #verde
 
-def getNodesAndEdges(ip, where): #wherw puede ser src o dst
+	return color
+
+#*********************************************
+#  Method to select the width of the edge
+#*********************************************
+def getWidthEdge(numveces):
+
+	if int(numveces) == 1:
+		penwidth = 1
+	if int(numveces) == 2:
+		penwidth = 2
+	if int(numveces) == 3:
+		penwidth = 3
+	if int(numveces) >= 4:
+		penwidth = 5
+
+	return penwidth
+
+
+#*********************************************
+#  Method to create one node in a graph
+#  return the new graph
+#*********************************************
+def createNode(node, graf):
+	grafo = graf
+	grafo.node(node,node, shape="egg")
+
+	return grafo
+
+#*********************************************
+#  Method to add nodes and edges in a graph
+#*********************************************
+def addNodes(parent, listNodesCrit, grafo): 
+	graf = grafo
+	numCom = 0
+	
+	for n in listNodesCrit:
+		print (n)
+
+		crit = listNodesCrit[n][0]
+		numCom = listNodesCrit[n][1]                           ###############################REVISAR!!!!!!!!
+		c = getColorCrit(int(crit))
+		w = getWidthEdge(numCom) 
+		criticality = "Criticity: "+str(crit) + " NumHAs: "+ str(numCom)
+		graf = createNode(n, grafo)
+		graf.edge(parent, n, label = criticality, color = c)#, arrowhead='vee', weight = w) ##only for html
+	print ("///////////////")
+	return graf
+
+#******************************************************
+#  Method to get all the comunication with one ip
+#  return list[(ip, criticality)]
+#******************************************************
+def getComunication(ip, where): #where puede ser src o dst
 	nodes = []
 	where = where.lower()
 	hiperA = SearchIpInHyperAlert(ip,where)
-
+	lista = []
 	for a in hiperA:
 		tupla=a["tupla"]
 		if where == "src":
-			h = a["HyperA"]
-			grafo = [tupla["destIP"], h["criticality"]]
+			grafo = (tupla["destIP"], a["criticality"])
 		if where == "dst":
-			grafo = [tupla["srcIP"], h["criticality"]]
+			grafo = (tupla["srcIP"], a["criticality"])
 		nodes.append(grafo)
 
 	return nodes
 
+#********************************************************
+#   It search ips wich ip parent comunicate, then return 
+#   dic {ip:[ max criticality, number of comunications]}
+#********************************************************
+def getNodesSonsAndFeatures(ip):
+	nodes={}
+	
+	nodesEdges = getComunication(ip, "src")
+	
+	for i in nodesEdges:
+		nodes[i[0]] =[5,0]
+	for i in nodesEdges:
+		if i[1] < nodes[i[0]][0]:
+			nodes[i[0]][0] = i[1]
+		nodes[i[0]][1] += 1
+	#print(nodes)
+	return nodes
 
+def CreateGrafoL1(ip):
+	grafo = Digraph(comment ='GraphL1', format = 'png')
+	nodes = getNodesSonsAndFeatures(ip)
+	grafo = createNode(ip, grafo) ##creo el primer nodo
+	grafo = addNodes(ip, nodes, grafo) ## añade todos los nodos al grafo con sus características correspondientes
+	print(grafo.source)
+	grafo.render('GraphL1.png', view=True)
+	return grafo
 
-def addNode(graph, parent, node, label):
-	newGraph = Digraph(comment ='Graph', format = 'png')
-	newGraph = graph
-	newGraph.node(node, node, shape ='egg')
-	newGraph.edge(parent, node, label = label)
-
-	return newGraph
-#*********************************************
-#                  returns a list where list[0]= newgraph list[1] = sonNode, list[3] = parentNode
-#*********************************************
-
-def createFirstNode(ip, nodesEdges):
-	newGraph = Digraph(comment ='Graph', format = 'png')
-	#newGraph = nx.Graph()
-	lista = []
-	hpera=[]
-	criticality = []
-	nodes = []
-
-	for n in nodesEdges:
-		srcIP = n["srcIP"]
-		destIP = n["destIP"]
-		#hypera = {"HyperA" : n}
-		h = n["HyperA"]
-		criticality.append(h["criticality"])
-
-	crit = calculateCriticality(criticality)
-	label = "criticality: " + str(crit)
-	newGraph.node(srcIP, srcIP, shape ='egg')
-
-	newGraph = addNode(newGraph, srcIP, destIP, label)
-	lista.apend(newGraph)
-	lista.append(destIP)
-	lista.append(ip)
-	return lista
+def CreateGrafoL2L3(son, grafo):
+	nodes = getNodesSonsAndFeatures(son)
+	grafo = addNodes(son, nodes, grafo)
+	print(grafo.source)
+	grafo.render('GraphL2.png', view=True)
+	return grafo
 
 #*********************************************
 #                  MAIN PROGRAM
 #*********************************************
 
 if __name__ == '__main__':
-	
 
 	Hyperalert()
+	#graf = CreateGrafoL1("192.168.1.102")
+	graf = CreateGrafoL1("10.6.12.203")
+
+	graf = CreateGrafoL2L3("10.6.12.157",graf)
+	#graf = CreateGrafoL2L3("172.16.156.130","172.16.156.130",graf)
+
+	#parsertime()
+	#  Hyperalert()
+	#def CreateGraphL1():
+	#grafo = Digraph(comment ='GraphL1', format = 'png')
+	#nodes = getNodesSonsAndFeatures("10.128.0.243")
+	#grafo = createNode("10.128.0.243", grafo) ##creo el primer nodo
+	#grafo = addNodes("10.128.0.243", nodes, grafo) ## añade todos los nodos al grafo con sus características correspondientes
+	#print(grafo.source)
+	#grafo.render('Graph L1.png', view=True)
+	#grafo.view()
+	#####end CreateGraphL1()
 
 
-	nodes=[]
-	#SearchIpInHyperAlert("192.168.198.203","src")
-	nodesEdges = getNodesAndEdges("192.168.198.203", "src")
-
-	#new= nx.Graph()
-	grafo = Digraph(comment ='GraphL1', format = 'png')
-	grafo = createGraph(nodesEdges)
-
-	nodesEdges = getNodesAndEdges("192.168.198.204", "src")
 
 	#new= nx.Graph()
 	#grafo = Digraph(comment ='GraphL1', format = 'png')
-	grafo = addNode(nodesEdges, grafo)
+	#grafo = createGraph(nodesEdges)
 
-	print(grafo.source)
-	grafo.render('Graph L1.gv.pdf', view=True)
-	grafo.view()
+	#nodesEdges = getNodesAndEdges("192.168.198.204", "src")
 
-#parsertime()
+	#new= nx.Graph()
+	#grafo = Digraph(comment ='GraphL1', format = 'png')
+	#grafo = addNode(nodesEdges, grafo)
+
+	#print(grafo.source)
+	#grafo.render('Graph L1.gv.pdf', view=True)
+	#grafo.view()
+
+#
 #		event = None
 #lastTimeAnalized(3)
 #print(GetlastTimeAnalized())
