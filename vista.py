@@ -153,35 +153,24 @@ def updateTableGraph():
 		tabla2.tag_configure("yellow", background="#FFFF1B")
 		tabla2.tag_configure("green", background="#ACFF1B")
 
-def getWGrafoL1(ip):
-	
+def getWGrafoL1():
+
+	ip = ipGraphL1.get()
+
 	graf = CreateGrafoL1(ip)		#funcion que crea la imagen del grafo
 	graf.render('GraphL1.png', view=True)
-	#windowL1 = tk.Toplevel(window)
-	#windowL1.geometry("1095x175")
-	#windowL1.title("Graph Level 1")
-	#windowL1.attributes("-fullscreen", False)
 
-	
-	#grafo = Canvas(windowL1, width= 1095, height =175, bg= "#6600cc")
-	#img1 = Image.open(r"GraphL1.png.png")
-	#imGraph1= ImageTk.PhotoImage(img1)
-	#grafo.grid(row=0, column=0, sticky=N+E)
-	#grafo.create_image(0,0, image = imGraph1, anchor= NW)
-	updateTableGraph()
 	return graf 
 
-def getWGrafoL2(ip,graf):
+def getWGrafoL2(graf):
+
+	ip = ipGraphL2.get()
+
 	graf=CreateGrafoL2L3(ip,graf)
 	graf.render('GraphL2.png', view=True)
-	#windowL2 = tk.Toplevel(window)
-	#windowL2.geometry("1095x175")
-	#windowL2.title("Graph Level 1")
-	#windowL2.attributes("-fullscreen", False)
-	updateTableGraph()
 
 
-#def displayGraph():
+
 
 
 #*********************************************
@@ -285,7 +274,7 @@ if __name__ == '__main__':
 	#********************************************************************
 	## GRAPH FONDO
 
-	frBottomLeft =  LabelFrame(container,text= "Interaction Graph", width= 1000, height=200)
+	frBottomLeft =  LabelFrame(container,text= "Graph Information", width= 1000, height=200)
 	
 	backgroundBL = Canvas(frBottomLeft, width=1000 , height =200, bg= "#6600cc")
 
@@ -304,20 +293,32 @@ if __name__ == '__main__':
 	hyperaButton.grid(row=1, column = 0, sticky=W+E)
 
 	ip = "10.6.12.203"
-	ips = "10.6.12.157"
+	#ips = "10.6.12.157"
 	graf = CreateGrafoL1(ip)
 
-	graphL1Button = tk.Button(frTopLeft, text="Interaction Graph L1", padx = 16, pady= 2, command= lambda:getWGrafoL1(ip),bg= "#e699ff",  fg= "#000000")
-	graphL1Button.grid(row=2, column = 0, sticky=W+E)
+	ipL1Label = tk.Label(frTopLeft, text= "Insert IP L1",  anchor="w" ,font= ("verdana",8, "bold") )
+	ipL1Label.grid(row=2, column=0,  sticky=W+E)
 
-	graphL2Button = Button(frTopLeft, text="Interaction Graph L2", padx = 16, pady= 2, command= lambda :getWGrafoL2(ips,graf), bg= "#e699ff",fg= "#000000")
-	graphL2Button.grid(row=3, column = 0, sticky=W+E)
+	ipGraphL1 = tk.Entry(frTopLeft)
+	ipGraphL1.grid(row=3, column = 0, sticky=W+E)
 
-	#graphL3Button = Button(frTopLeft, text="Interaction Graph L3", padx = 16, pady= 2, command= getGraphL2L3, bg= "#e699ff",fg= "#000000")
-	#graphL3Button.grid(row=4, column = 0, sticky=W+E)
+	graphL1Button = tk.Button(frTopLeft, text="Interaction Graph L1", padx = 16, pady= 2, command=getWGrafoL1,bg= "#e699ff",  fg= "#000000")
+	graphL1Button.grid(row=4, column = 0, sticky=W+E)
+
+	ipL2Label = tk.Label(frTopLeft, text= "Insert IP L2",  anchor="w" ,font= ("verdana",8, "bold") )
+	ipL2Label.grid(row=5, column=0, sticky=W+E)
+
+	ipGraphL2 = tk.Entry(frTopLeft)
+	ipGraphL2.grid(row=6, column = 0, sticky=W+E)
+
+	graphL2Button = Button(frTopLeft, text="Interaction Graph L2", padx = 16, pady= 2, command= lambda :getWGrafoL2(graf), bg= "#e699ff",fg= "#000000")
+	graphL2Button.grid(row=7, column = 0, sticky=W+E)
+
+	graphINFOButton = Button(frTopLeft, text="Graph Info", padx = 16, pady= 2, command= updateTableGraph, bg= "#e699ff",fg= "#000000")
+	graphINFOButton.grid(row=8, column = 0, sticky=W+E)
 
 	closeApp=  Button(frTopLeft, text="Close App", padx = 16, pady= 2, command= window.destroy, bg= "#ff8080", fg= "#000000")
-	closeApp.grid(row=5, column = 0, sticky=W+E)
+	closeApp.grid(row=9, column = 0, sticky=W+E)
 
 
 
@@ -326,117 +327,3 @@ if __name__ == '__main__':
 
 	window.mainloop()
 		
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def groupby2():
-		
-		hiperA = conectToDB('tranalyzer','HiperAlert')																#hiperAlert collection in mongodb
-		al = conectToDB('tranalyzer','alertas')
-		hiperA.drop()
-		timeAlerts = []
-		timeFlow = []
-		dataAlerts = []
-		alerts = []
-		
-		timeAlerts = getListOfSecondsA() #obtengo las alertas ordenadas por seconds
-		timeFlow = getListOfSecondsF()	#obtengo init y fin de flujos con tupla
-			
-		for a in timeAlerts: #recorro alertas
-			destIP = a["destIP"]
-			eventsecond = a["event-second"]
-			srcIP = a["srcIP"]
-			srcPort = a["srcPort"]
-			destPort = a["destPort"]
-			dataAlerts = al.find({"event.destination-ip":destIP, "event.event-second":eventsecond,"event.source-ip":srcIP,"event.sport-itype":srcPort, "event.dport-icode":destPort},{"_id":1,"event.event-id":1, "event.classification" :1, "event.priority":1, "event.event-second":1, "event.event-microsecond":1, "event.destination-ip":1, "event.event-second":1,"event.source-ip":1,"event.sport-itype":1, "event.dport-icode":1})	#buso el resto de datos de esas alertas
-		
-		for d in dataAlerts: #recorro alertas con todos los datos
-			classification = d["event"]["classification"]
-			destIP = d["event"]["destination-ip"] 
-			eventsecond = d["event"]["event-second"]
-			srcIP = d["event"]["source-ip"]
-			srcPort =d["event"]["sport-itype"]
-			destPort = d["event"]["dport-icode"]
-			ide = d["_id"]
-			eventid = d["event"]["event-id"]
-			priority = d["event"]["priority"]
-			second = d["event"]["event-second"]
-			microsecond = d["event"]["event-microsecond"]
-			event = d["event"]
-			aJson={"alert":{"_id":ide, "event":{"classification": classification,"event-id":eventid,"event-microsecond":microsecond,"event-second":second, "priority":priority}}}
-			alerts.append(aJson) #las guardo en json
-			#pprint.pprint(alerts)										
-		
-		for f in timeFlow: #recorro los flujos
-			for a in alerts: #recorro el json
-				#pprint.pprint(a)
-				if isBetween(f['secondsInit'], f['secondsFin'], a['alert']['event']['event-second']): 				#alert in a flow
-					if "srcIP" in f:
-						if (str(f['srcIP']) == str(a['srcIP'])):
-							if (str(f['srcPort']) == str(a['srcPort'])):
-								if (str(f['dstIP']) == str(a['destIP'])):
-									if (str(f['dstPort']) == str(a['destPort'])): 
-										alertJson={"alert":{"_id":a["_id"],"event":{"event-id": a["event-id"], "event-microsecond" : a["event-microsecond"], "event-second" : a["event-second"], "priority" : a["priority"]}}}
-										alerts.append(alertJson)
-										#print(alerts[0])
-			if len(alerts) > 0:
-				#alertJson = {"alert": {"_id":alerts["_id"], "event":{"Classification" : alerts["Classification"], "event-id" : alerts["event-id"], "event-microsecond" : alerts["event-microsecond"], "event-second" : alerts["event-second"], "priority" : alerts["priority"]}}}
-				myJson = {"flow": f["_id"], "classificationProt":f["nDPIclass"],"tupla":{"srcIP":f['srcIP'],"srcPort": f['srcPort'],"destIP":f['dstIP'],"destPort":f['dstPort'] }, "alerts": alerts}
-				hiperA.insert_one(myJson).inserted_id
-				alerts = []
-		
-		h = hiperA.find()
-		print("\n")
-		for z in h:
-			pprint.pprint(z)
-			print("\n----------------------------------------------\n")
-		
-		
-		#--------------------pruebas between--------
-		#if fOa == "f": #flow
-		#for f in lista:
-		#	if f['secondsInit'] >= sgInit:
-		#		if f['secondsFin'] <= sgFin:
-		#			newList.append(f)
-		#			
-		#if fOa == "a": #alert
-		#	for a in lista:
-		#		if a['seconds'] >= sgInit:
-		#			if a['seconds'] <= sgFin:
-		#				newList.append(f)
-		#-------------------------------------------------
-
-		#-----------------------------------para acceder a t init o t fin de flow
-		#z=0
-		#for i in timeFlow:
-			#print("--init--")
-			#pprint.pprint(seconds[z]['secondsInit'])
-			#print("---end--")
-			#pprint.pprint(seconds[z]['secondsFin'])
-			#z=z+1
-		#-----------------------------------
-
-	#end groupby2()
