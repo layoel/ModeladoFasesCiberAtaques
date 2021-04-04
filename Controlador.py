@@ -44,6 +44,10 @@ def conectToDBTime():
 	conexion = conectToDB("tranalyzer","timeAnalized")
 	return conexion	
 
+def conectToDBGraph():
+	conexion = conectToDB("tranalyzer","Graph")
+	return conexion	
+
 #**********************************************************************************
 #  search ip in list return the position of the ip in the list or -1 if  not exist.
 #**********************************************************************************
@@ -132,6 +136,7 @@ def UpdateLTAnalized(sg):
 	
 	conexion.update_one(query, updates) 																					#update mongo
 	
+
 	
 #****************************************************************************
 #  it returns all the collections from a db that you pass like a parameter. 
@@ -333,13 +338,22 @@ def isBetween(sgInit, sgFin, num):
 #   get all hyperalerts
 #**************************************************************************************
 def getHAlert():
-	parsertime()
-	Hyperalert()
+	#parsertime()
+	#Hyperalert()
 	hyperA = conectToDBHypera()
 	allHyperA = hyperA.find()
 
 	return allHyperA
 	
+#**************************************************************************************
+#   get Graph nodes, edges and info
+#**************************************************************************************
+def getGraph():
+
+	graph = conectToDBGraph()
+	GraphInfo = graph.find()
+
+	return GraphInfo
 #**************************************************************************************
 #   method valuate criticality of alerts p1, p2 and p3
 #**************************************************************************************	
@@ -420,8 +434,6 @@ def Hyperalert():
 
 		for c in findfl:
 			flowid = c["_id"]
-			#print(c["nDPIclass"])
-			#if c["nDPIclass"] != "Unknown":
 			prot = c["nDPIclass"]
 			
 			#pprint.pprint(c["_id"])
@@ -637,14 +649,6 @@ def groupby3():
 
 
 #***************************************************
-#   group by....
-#***************************************************
-
-def groupby4():
-	print("hola")
-#end groupby4()
-
-#***************************************************
 #   Search ip in hiperAlert
 #***************************************************
 
@@ -700,11 +704,11 @@ def groupby6():
 		result = hiperA.find({"tupla.srcPort":port})
 	
 	resultcount= result.count()
-	print("\n\nThere are ", resultcount,"result in BD\n")
+	#print("\n\nThere are ", resultcount,"result in BD\n")
 	
-	for r in result:
-		print("\n----------------------------------------\n")
-		pprint.pprint (r)
+	#for r in result:
+	#	print("\n----------------------------------------\n")
+	#	pprint.pprint (r)
 #end groupby6()
 
 #***************************************************
@@ -761,9 +765,9 @@ def groupby7():
 	resultcount= result.count()
 	print("\n\nThere are ", resultcount,"result in BD\n")
 	
-	for r in result:
-		print("\n----------------------------------------\n")
-		pprint.pprint (r)
+	#for r in result:
+	#	print("\n----------------------------------------\n")
+	#	pprint.pprint (r)
 #end groupby7()
 
 #***************************************************
@@ -870,17 +874,37 @@ def addNodes(parent, listNodesCrit, grafo):
 	numCom = 0
 	
 	for n in listNodesCrit:
-		print (n)
+		#print (n)
 
 		crit = listNodesCrit[n][0]
 		numCom = listNodesCrit[n][1]                           ###############################REVISAR!!!!!!!!
+		prot= listNodesCrit[n][2]
 		c = getColorCrit(int(crit))
 		w = getWidthEdge(numCom) 
-		criticality = "Criticity: "+str(crit) + " NumHAs: "+ str(numCom)
+		#criticality = "Criticity: "+str(crit) + " NumHAs: "+ str(numCom) + str(prot)
+		criticality = prot
 		graf = createNode(n, grafo)
 		graf.edge(parent, n, label = criticality, color = c)#, arrowhead='vee', weight = w) ##only for html
-	print ("///////////////")
+	#print ("///////////////")
 	return graf
+
+#****************************************************
+# Method to insert in a colecction Graph, graph info
+#****************************************************
+def InsertNodesDB(parent, listNodesCrit, grafo):
+	dbcol = conectToDB("tranalyzer","Graph")
+
+	graf = grafo
+	numCom = 0
+	
+	for n in listNodesCrit:
+		crit = listNodesCrit[n][0]
+		numCom = listNodesCrit[n][1]                           
+		prot= listNodesCrit[n][2]
+		c = getColorCrit(int(crit))
+		nodesAndEdges ={ "_id":{"srcIP": parent, "dstIP": n, "Criticity": crit, "NumHAs":numCom, "ClassProt":prot}}
+		dbcol.replace_one(nodesAndEdges, nodesAndEdges, upsert=True)
+
 
 #******************************************************
 #  Method to get all the comunication with one ip
@@ -894,59 +918,67 @@ def getComunication(ip, where): #where puede ser src o dst
 	for a in hiperA:
 		tupla=a["tupla"]
 		if where == "src":
-			grafo = (tupla["destIP"], a["criticality"])
+			grafo = (tupla["destIP"], a["criticality"], a["classificationProt"])
 		if where == "dst":
-			grafo = (tupla["srcIP"], a["criticality"])
+			grafo = (tupla["srcIP"], a["criticality"], a["classificationProt"])
 		nodes.append(grafo)
 
 	return nodes
 
 #********************************************************
 #   It search ips wich ip parent comunicate, then return 
-#   dic {ip:[ max criticality, number of comunications]}
+#   dic {ip:[ max criticality, number of comunications, protocol]}
 #********************************************************
 def getNodesSonsAndFeatures(ip):
 	nodes={}
 	
 	nodesEdges = getComunication(ip, "src")
-	
 	for i in nodesEdges:
-		nodes[i[0]] =[5,0]
+		nodes[i[0]] =[5,0, i[2]]
 	for i in nodesEdges:
 		if i[1] < nodes[i[0]][0]:
 			nodes[i[0]][0] = i[1]
 		nodes[i[0]][1] += 1
-	#print(nodes)
+	#pprint.pprint(nodes)
 	return nodes
 
+#****************************************************************
+# Method to create Graph Level 1
+#****************************************************************
 def CreateGrafoL1(ip):
 	grafo = Digraph(comment ='GraphL1', format = 'png')
 	nodes = getNodesSonsAndFeatures(ip)
 	grafo = createNode(ip, grafo) ##creo el primer nodo
 	grafo = addNodes(ip, nodes, grafo) ## añade todos los nodos al grafo con sus características correspondientes
-	print(grafo.source)
-	grafo.render('GraphL1.png', view=True)
+	InsertNodesDB(ip, nodes, grafo)
+	#print(grafo.source)
+	#grafo.render('GraphL1.png', view=True)
 	return grafo
 
+#****************************************************************
+# Method to create Graph Level 2
+#****************************************************************
 def CreateGrafoL2L3(son, grafo):
 	nodes = getNodesSonsAndFeatures(son)
 	grafo = addNodes(son, nodes, grafo)
-	print(grafo.source)
-	grafo.render('GraphL2.png', view=True)
+	InsertNodesDB(son, nodes, grafo)
+	#print(grafo.source)
+	#grafo.render('GraphL2.png', view=True)
 	return grafo
+	
 
 #*********************************************
 #                  MAIN PROGRAM
 #*********************************************
 
-if __name__ == '__main__':
+#if __name__ == '__main__':
 
-	Hyperalert()
+	#Hyperalert()
 	#graf = CreateGrafoL1("192.168.1.102")
-	graf = CreateGrafoL1("10.6.12.203")
+	#graf = CreateGrafoL1("10.6.12.203")
 
-	graf = CreateGrafoL2L3("10.6.12.157",graf)
-	#graf = CreateGrafoL2L3("172.16.156.130","172.16.156.130",graf)
+	#graf = CreateGrafoL2L3("10.6.12.157",graf)
+	
 
 	#parsertime()
 	#  Hyperalert()

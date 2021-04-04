@@ -3,13 +3,8 @@ from tkinter import *
 from tkinter import ttk
 from tkinter import messagebox						#create message
 from PIL import Image, ImageTk
-from Controlador import Hyperalert, getHAlert, getIPListAlerts, parsertime
+from Controlador import Hyperalert, getHAlert, getIPListAlerts, parsertime, CreateGrafoL1, CreateGrafoL2L3, getGraph
 import tkinter.font as tkFont
-
-
-def conexionNodes():
-	conexionHA = conectToDBNodes("tranalyzer", "nodes")  
-	return conexionHA
 
 
 def showIP(): #muestra la lista de ips
@@ -105,7 +100,7 @@ def getHyperA():
 		frTopRightRight = LabelFrame(frTopRightFull,text= ("Alerts List"), font= ("verdana",8, "bold"), padx = 5, pady=5)
 		frTopRightRight.grid(column=4, row=row1, columnspan=5, rowspan=(nAlerts))
 
-		tabla1 = ttk.Treeview(frTopRightRight, columns= ("#0","#1","#2","#3","#4","#5"), selectmode = "browse")
+		tabla1 = ttk.Treeview(frTopRightRight, columns= ("#1","#2","#3","#4","#5"), selectmode = "browse")
 		tabla1.grid(column=4, row = row1, rowspan= 6, columnspan = 5, sticky=W+E+N+S)
 
 		scrollYTable = ttk.Scrollbar(frTopRightRight, orient="vertical",command = tabla1.yview)
@@ -123,21 +118,70 @@ def getHyperA():
 		row = row1
 
 
-def getGraphL1():
-	imGraph = Image.open("GraphL1.png")
-	imGraph.resize((300,155), Image.ANTIALIAS)
-	show = ImageTk.PhotoImage(imGraph)
+def updateTableGraph():
+	nodes = getGraph()
 
-	grafo = Canvas(frBottomLeft, width= 300, height =155, bg= "#6600cc")
-	grafo.create_image(15,0, image = imGraph, rowspan = 10, columnspan=5, anchor= NW)
-	grafo.grid(row=20, column=0, rowspan = 10, columnspan=5, sticky=N+E)
-	
-	
+	tabla2 = ttk.Treeview(frBottomLeft, columns= ("#1","#2","#3","#4"), selectmode = "browse")
+	tabla2.grid(column=0, row = 0,columnspan=9, rowspan = 10,sticky=W+E+N+S)
 
-def getGraphL2():
-	return 0
-def getGraphL3():
-	return 0
+	scrollYTable2 = ttk.Scrollbar(frBottomLeft, orient="vertical",command = tabla2.yview)
+	scrollYTable2.grid(column=9, row = 0, rowspan=10, sticky=W+E+N+S)
+	tabla2.configure(yscrollcommand = scrollYTable2.set)
+
+	tabla2.heading("#0", text= "Src IP")
+	tabla2.heading("#1", text= "Dst IP")
+	tabla2.heading("#2", text= "Class. Prot")
+	tabla2.heading("#3", text= "Criticality")
+	tabla2.heading("#4", text= "Num HyperAlerts")
+
+	for doc in nodes:
+		info = doc["_id"]
+		
+		if info["Criticity"] == 1:
+			color="red"
+		if info["Criticity"] == 2:
+			color="orange"
+		if info["Criticity"] == 3:
+			color="yellow"
+		if info["Criticity"] == 4:
+			color="green"
+
+
+		tabla2.insert("",'end',text=info["srcIP"], values = (info["dstIP"], info["ClassProt"], info["Criticity"], info["NumHAs"]),tags= color)
+		tabla2.tag_configure("red", background="#FF0000")
+		tabla2.tag_configure("orange", background="#FFC100")
+		tabla2.tag_configure("yellow", background="#FFFF1B")
+		tabla2.tag_configure("green", background="#ACFF1B")
+
+def getWGrafoL1(ip):
+	
+	graf = CreateGrafoL1(ip)		#funcion que crea la imagen del grafo
+	graf.render('GraphL1.png', view=True)
+	#windowL1 = tk.Toplevel(window)
+	#windowL1.geometry("1095x175")
+	#windowL1.title("Graph Level 1")
+	#windowL1.attributes("-fullscreen", False)
+
+	
+	#grafo = Canvas(windowL1, width= 1095, height =175, bg= "#6600cc")
+	#img1 = Image.open(r"GraphL1.png.png")
+	#imGraph1= ImageTk.PhotoImage(img1)
+	#grafo.grid(row=0, column=0, sticky=N+E)
+	#grafo.create_image(0,0, image = imGraph1, anchor= NW)
+	updateTableGraph()
+	return graf 
+
+def getWGrafoL2(ip,graf):
+	graf=CreateGrafoL2L3(ip,graf)
+	graf.render('GraphL2.png', view=True)
+	#windowL2 = tk.Toplevel(window)
+	#windowL2.geometry("1095x175")
+	#windowL2.title("Graph Level 1")
+	#windowL2.attributes("-fullscreen", False)
+	updateTableGraph()
+
+
+#def displayGraph():
 
 
 #*********************************************
@@ -145,6 +189,7 @@ def getGraphL3():
 #*********************************************
 
 if __name__ == '__main__':	
+	Hyperalert()
 
 	window = Tk()
 
@@ -164,10 +209,10 @@ if __name__ == '__main__':
 	#********************************************************************
 	#             crear el lienzo y ponen el wallpaper
 	#********************************************************************
-	container= Frame(window)
+	container= Frame(window, width= 1024, height =700)#768)
 	## Buttons FONDO
 	#background = Canvas(container, width= 100, height =200, bg= "#6600cc")
-	background = Canvas(container, width= 1024, height =768, bg= "#6600cc")
+	background = Canvas(container, width= 1024, height =700, bg= "#6600cc")
 	#background.grid(row=0, column=0, columnspan=1,rowspan=6, sticky=N+S+W+E)
 	background.grid(row=0, column=0, columnspan=10, sticky=N+S+W+E)
 	image= ImageTk.PhotoImage(file = "./images/wallpaper.png")
@@ -181,15 +226,15 @@ if __name__ == '__main__':
 	#                 		top left frame
 	#********************************************************************
 
-	frTopLeft = Frame(container, width= 50, height =200, padx =5, pady=5)
+	frTopLeft = Frame(container, width= 50, height =213, padx =5, pady=5)
 	#frTopLeft.pack()
-	frTopLeft.grid(column=0, row=0, rowspan=6, sticky=N+W) #distancia a los bordes de la window
+	frTopLeft.grid(column=0, row=0, rowspan=15, sticky=N+W) #distancia a los bordes de la window
 	#********************************************************************
 	#                		 top center frame
 	#********************************************************************
 	
-	frTopCenter =  LabelFrame(container,text= "IPs List", width= 120, height =200,padx = 5, pady=5)
-	backgroundC = Canvas(frTopCenter, width=120 , height =200, bg= "#6600cc")
+	frTopCenter =  LabelFrame(container,text= "IPs List", width= 120, height =213,padx = 5, pady=5)
+	backgroundC = Canvas(frTopCenter, width=120 , height =213, bg= "#6600cc")
 	
 	scrollbarIP = ttk.Scrollbar(frTopCenter, orient="vertical",command = backgroundC.yview)
 	scrollableFrameIP= ttk.Frame(backgroundC)
@@ -205,33 +250,21 @@ if __name__ == '__main__':
 
 	backgroundC.configure(yscrollcommand=scrollbarIP.set)
 
-	frTopCenter.grid(row=0, column=1, rowspan=15, sticky=N+W)
-	scrollbarIP.grid(row = 0, column=1, rowspan=15, sticky=E+N+S)
-	backgroundC.grid(row=0, column=1, rowspan=15, sticky=N+S+W+E)
-
-	
-	## IPS FONDO
-	#backgroundT = Canvas(frTopCenter, width= 100, height =200, bg= "#6600cc")
-	#backgroundT.grid(row=0, column=1, rowspan=6, sticky=N+S+W+E)
-	#transpImg = ImageTk.PhotoImage(file = "./images/wallpaper.png")
-	#backgroundT.create_image(0,0, image = transpImg, anchor= NW)
+	frTopCenter.grid(row=0, column=1, rowspan=6, sticky=N+W)
+	scrollbarIP.grid(row = 0, column=1, rowspan=6, sticky=E+N+S)
+	backgroundC.grid(row=0, column=1, rowspan=6, sticky=N+S+W+E)
 	
 	
 
 	#********************************************************************
 	#                		 top right frame
 	#********************************************************************
-	#backgroundR = Canvas(container, width= 100, height =200, bg= "#6600cc")
-	#backgroundR.grid(row=0, column=2, columnspan=8,rowspan=6, sticky=N+S+W+E)
-	#backgroundR.create_image(0,0, image = image, anchor= NW)
-	frTopRight =  LabelFrame(container,text= "Hyper Alerts List", padx = 5, pady=5, width= 600, height=155)
+	frTopRight =  LabelFrame(container,text= "Hyper Alerts List", padx = 5, pady=5, width= 600, height=200)
 	frTopRight.grid(column=2, row=0, rowspan=6,columnspan=8, sticky=N+W+E)
 
 	## HYPERALERT FONDO
-	backgroundR = Canvas(frTopRight, width= 600, height =155, bg= "#6600cc")
+	backgroundR = Canvas(frTopRight, width= 600, height =200, bg= "#6600cc")
 	backgroundR.grid(row=0, column=2, columnspan=8,rowspan=6, sticky=N+S+W+E)
-	#transpImg = ImageTk.PhotoImage(file = "./images/wallpaper.png")
-	#backgroundT.create_image(0,0, image = transpImg, anchor= NW)
 
 	scrollbarTRVFrame=Scrollbar(frTopRight, orient=VERTICAL, command=backgroundR.yview) #scroll vertical
 	scrollbarTRHFrame=Scrollbar(frTopRight, orient=HORIZONTAL, command=backgroundR.xview) #scroll Horizontal
@@ -248,103 +281,46 @@ if __name__ == '__main__':
 	scrollbarTRHFrame.grid(row=6, column=0, columnspan=10, sticky=W+E)
 
 	#********************************************************************
-	#                		 bottom left frame
+	#                		 bottom left frame                    			***************************************************************************************
 	#********************************************************************
 	## GRAPH FONDO
 
-	frBottomLeft =  LabelFrame(container,text= "Interaction Graph", padx = 5, pady=5)
-	frBottomLeft.grid(column=0, row=6, sticky=W+E)
+	frBottomLeft =  LabelFrame(container,text= "Interaction Graph", width= 1000, height=200)
+	
+	backgroundBL = Canvas(frBottomLeft, width=1000 , height =200, bg= "#6600cc")
 
-
-	#********************************************************************
-	#                		 bottom right frame
-	#********************************************************************
-	## NODE FONDO
-	frBottomRight =  LabelFrame(container,text= "Graphs Nodes Info", padx = 5, pady=5)
-	frBottomRight.grid(column=1, row=6, sticky=W+E)
-
-
+	frBottomLeft.grid(row= 0 , column= 0,  rowspan= 10, columnspan = 9, sticky=S+E+W)
+	backgroundBL.grid(row= 0, column= 0,  rowspan= 10, columnspan = 9, sticky=S+E+W)
 
 
 	#********************************************************************
 	#                 top left frame: buttons
 	#********************************************************************
 	#create a button: Button(window, text="HyperAlert")
-	hyperaButton = Button(frTopLeft, text="Show HyperAlert", padx = 16, pady= 2, command= getHyperA, bg= "#e699ff", fg= "#000000")
-	hyperaButton.grid(row=0, column = 0, sticky=W+E)
-
 	ipListButton = Button(frTopLeft, text="Show IPs" ,padx = 16, pady= 2, command= showIP,  bg= "#e699ff",fg= "#000000")
-	ipListButton.grid(row=1, column = 0, sticky=W+E)
+	ipListButton.grid(row=0, column = 0, sticky=W+E)
 
-	graphL1Button = Button(frTopLeft, text="Interaction Graph L1", padx = 16, pady= 2, command= getGraphL1,bg= "#e699ff",  fg= "#000000")
+	hyperaButton = Button(frTopLeft, text="Show HyperAlert", padx = 16, pady= 2, command= getHyperA, bg= "#e699ff", fg= "#000000")
+	hyperaButton.grid(row=1, column = 0, sticky=W+E)
+
+	ip = "10.6.12.203"
+	ips = "10.6.12.157"
+	graf = CreateGrafoL1(ip)
+
+	graphL1Button = tk.Button(frTopLeft, text="Interaction Graph L1", padx = 16, pady= 2, command= lambda:getWGrafoL1(ip),bg= "#e699ff",  fg= "#000000")
 	graphL1Button.grid(row=2, column = 0, sticky=W+E)
 
-	graphL2Button = Button(frTopLeft, text="Interaction Graph L2", padx = 16, pady= 2, command= getGraphL2, bg= "#e699ff",fg= "#000000")
+	graphL2Button = Button(frTopLeft, text="Interaction Graph L2", padx = 16, pady= 2, command= lambda :getWGrafoL2(ips,graf), bg= "#e699ff",fg= "#000000")
 	graphL2Button.grid(row=3, column = 0, sticky=W+E)
 
-	graphL3Button = Button(frTopLeft, text="Interaction Graph L3", padx = 16, pady= 2, command= getGraphL3, bg= "#e699ff",fg= "#000000")
-	graphL3Button.grid(row=4, column = 0, sticky=W+E)
+	#graphL3Button = Button(frTopLeft, text="Interaction Graph L3", padx = 16, pady= 2, command= getGraphL2L3, bg= "#e699ff",fg= "#000000")
+	#graphL3Button.grid(row=4, column = 0, sticky=W+E)
 
 	closeApp=  Button(frTopLeft, text="Close App", padx = 16, pady= 2, command= window.destroy, bg= "#ff8080", fg= "#000000")
 	closeApp.grid(row=5, column = 0, sticky=W+E)
 
 
-	#********************************************************************
-	#                 top center frame: ips list
-	#********************************************************************
 
-	#***********
-	# input box
-	#***********
-	#ipL1 = Button(frTopCenter, text="Interaction Graph L2")
-	#ipL1.grid(row=0, column = 1)
-
-
-
-
-	#canvasTopLeft = Canvas(frTopLeft)
-	#scrollbarfrTopLeft = ttk.Scrollbar(frTopLeft, orient = "vertical", command = canvasTopLeft.yview)
-	#scrollableTopLeft= ttk.Frame(frTopLeft)
-	#scrollableTopLeft.bind("<Configure>", lambda e: canvasTopLeft.configure(scrollregion= canvasTopLeft.bbox("all")))
-
-	#frTopCenter = Frame (window)
-	#frTopRight = Frame(window)
-	#frBottomLeft = Frame(window)
-	#frBottomRight = Frame(window)
-
-
-
-
-
-
-
-	#create line: mycanvas.create_line(x1, x2, y1, y2, fill = "color")
-	#canvas.create_line(20, 20, 90, 20, fill = "white")
-
-
-	#padding = 3
-	#ancho = 8
-	#alto = 2
-
-
-	#hyperaButton = Button(frTopLeft, text="HyperAlert",width = ancho, height = alto, fg= "#6600cc", command = lambda: showIP(window)).place(x = 8, y = 10 )
-
-	#ipListButton = Button(window, text="Show IPs",width = ancho, height = alto, fg= "#6600cc").place(x = 8, y = 10+padding*10*alto )
-
-	#graphL1Button = Button(window, text="Interaction Graph L1",width = ancho+8, height = alto, fg= "#6600cc").place(x = 8, y = 10+padding*20*alto )
-	#graphL1Button.grid()
-
-	#graphL2Button = Button(window, text="Interaction Graph L2",width = ancho+8, height = alto, fg= "#6600cc").place(x = 8, y = 10+padding*30*alto )
-	#graphL2Button.grid()
-
-	#graphL3Button = Button(window, text="Interaction Graph L3",width = ancho+8, height = alto, fg= "#6600cc").place(x = 8, y = 10+padding*40*alto )
-	#graphL3Button.grid()
-
-
-
-	#table = ttk.Treeview(window, columns = 1)
-	#table.grid(row=1,column =0, columnspan = 1)
-	#table.heading("#0", text="IPs")
 
 	container.grid(row=0, column=0, columnspan=10,rowspan=2000, sticky=N+S+W+E)
 
